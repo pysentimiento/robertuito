@@ -1,8 +1,10 @@
+import os
 import torch
 import fire
 import re
 import tempfile
 import pandas as pd
+import json
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
 from pysentimiento.tass import id2label as id2labeltass, label2id as label2idtass
 from pysentimiento.preprocessing import preprocess_tweet
@@ -78,10 +80,7 @@ def load_model_and_tokenizer(model_name, device):
 
     Hay una interfaz diferente acá, no entiendo bien por qué
     """
-    if hasattr(tokenizer, "is_fast") and tokenizer.is_fast:
-        tokenizer.add_special_tokens({'additional_special_tokens': new_tokens_to_add})
-    else:
-        tokenizer.add_special_tokens(new_tokens_to_add)
+    tokenizer.add_tokens(new_tokens_to_add)
     model.resize_token_embeddings(len(tokenizer))
 
     return model, tokenizer
@@ -91,7 +90,7 @@ def run_sentiment(model_name, device):
     print("Running sentiment experiments")
 
     model, tokenizer = load_model_and_tokenizer(model_name, device)
-    train_dataset, dev_dataset, test_dataset = load_datasets(limit=250)
+    train_dataset, dev_dataset, test_dataset = load_datasets()
 
     def tokenize(batch):
         return tokenizer(batch['text'], padding='max_length', truncation=True)
@@ -101,7 +100,7 @@ def run_sentiment(model_name, device):
     batch_size = 8
     eval_batch_size = 4
     accumulation_steps = 4
-    lr = 1e-3
+    #lr = 1e-3
 
     train_dataset = train_dataset.map(tokenize, batched=True, batch_size=batch_size)
     dev_dataset = dev_dataset.map(tokenize, batched=True, batch_size=eval_batch_size)
@@ -113,12 +112,13 @@ def run_sentiment(model_name, device):
         if 'token_type_ids' in dataset.features:
             columns.append('token_type_ids')
         dataset.set_format(type='torch', columns=columns)
-        print(columns)
         return dataset
 
     train_dataset = format_dataset(train_dataset)
     dev_dataset = format_dataset(dev_dataset)
     test_dataset = format_dataset(test_dataset)
+
+
 
 
     output_path = tempfile.mkdtemp()
@@ -129,7 +129,6 @@ def run_sentiment(model_name, device):
         per_device_eval_batch_size=eval_batch_size,
         gradient_accumulation_steps=accumulation_steps,
         warmup_ratio=0.1,
-        learning_rate=lr,
         evaluation_strategy="epoch",
         do_eval=False,
         weight_decay=0.01,
@@ -149,10 +148,15 @@ def run_sentiment(model_name, device):
     trainer.train()
 
     test_results = trainer.evaluate(test_dataset)
+
+    os.system(f"rm -Rf {output_path}")
     return test_results
 
+tasks = {
+    "sentiment": run_sentiment
+}
 
-def run_benchmark(model_name: str, times: int):
+def run_benchmark(model_name: str, times: int, output_path: str):
     """
     Run benchmark
 
@@ -163,6 +167,10 @@ def run_benchmark(model_name: str, times: int):
 
     times:
         Number of times
+
+    output_path:
+        Where to output results (in JSON format)
+
     """
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -171,12 +179,22 @@ def run_benchmark(model_name: str, times: int):
     print(f"Using {device}", "\n"*3)
     print(("*"*80+'\n')*3)
 
+
+    results = {k: [] for k in tasks}
+    results["model_name"] = model_name
+
     for i in range(times):
         print(("="*80+'\n')*3)
         print(f"{i+1} iteration", "\n"*3)
 
-        sent_results = run_sentiment(model_name, device)
+        for task_name, task_fun in tasks.items():
+            task_results = task_fun(model_name, device)
+            results[task_name].append(task_results)
 
+    with open(output_path, "w+") as f:
+        json.dump(results, output_path)
+
+    print(f"Results saved to {output_path}")
 
 
 
