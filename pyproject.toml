@@ -13,6 +13,7 @@ fire = "^0.4.0"
 pysentimiento = {git = "https://github.com/pysentimiento/pysentimiento"}
 jupyterlab = "^3.0.16"
 setuptools = "^57.1.0"
+pandarallel = "^1.5.2"
 
 [tool.poetry.dev-dependencies]
 ipdb = "^0.13.9"
