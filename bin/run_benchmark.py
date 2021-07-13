@@ -11,7 +11,7 @@ tasks = {
     "emotion": run_emotion,
 }
 
-def run_benchmark(model_name: str, times: int, output_path: str):
+def run_benchmark(model_name: str, times: int, output_path: str, limit: int = None):
     """
     Run benchmark
 
@@ -43,7 +43,7 @@ def run_benchmark(model_name: str, times: int, output_path: str):
         print(f"{i+1} iteration", "\n"*3)
 
         for task_name, task_fun in tasks.items():
-            task_results = task_fun(model_name, device, limit=100, epochs=1)
+            task_results = task_fun(model_name, device, limit=limit, epochs=1)
             results[task_name].append(task_results)
 
     with open(output_path, "w+") as f:

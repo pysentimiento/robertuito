@@ -1,7 +1,7 @@
 from .preprocessing import special_tokens
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-def load_model_and_tokenizer(model_name, num_labels, device, add_tokens=special_tokens):
+def load_model_and_tokenizer(model_name, num_labels, device, add_tokens=special_tokens, max_length=128):
     """
     Load model and tokenizer
     """
@@ -10,7 +10,7 @@ def load_model_and_tokenizer(model_name, num_labels, device, add_tokens=special_
     )
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    tokenizer.max_length = 128
+    tokenizer.model_max_length = max_length
 
     model = model.to(device)
     model.train()

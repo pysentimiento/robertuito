@@ -94,7 +94,7 @@ class MultiLabelTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-def run(model_name, device, limit=None, epochs=5, batch_size=8, eval_batch_size=8):
+def run(model_name, device, limit=None, epochs=5, batch_size=32, eval_batch_size=16):
     """
     Run sentiment analysis experiments
     """

@@ -52,7 +52,7 @@ def load_datasets(limit=None):
 
 
 
-def run(model_name, device, limit=None, epochs=5, batch_size=8, eval_batch_size=8):
+def run(model_name, device, limit=None, epochs=5, batch_size=32, eval_batch_size=32):
     """
     Run sentiment analysis experiments
     """
