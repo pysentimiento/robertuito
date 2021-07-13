@@ -13,7 +13,7 @@ tasks = {
     "emotion": run_emotion,
 }
 
-def run_benchmark(model_name: str, times: int, output_path: str, limit: int = None):
+def run_benchmark(model_name: str, times: int, output_path: str, limit: int = None, max_epochs: int = None):
     """
     Run benchmark
 
@@ -36,6 +36,15 @@ def run_benchmark(model_name: str, times: int, output_path: str, limit: int = No
     print(f"Using {device}", "\n"*3)
     print(("*"*80+'\n')*3)
 
+    task_args = {
+        "device": device,
+        "limit": limit,
+    }
+
+    if max_epochs:
+        task_args["epochs"] = max_epochs
+
+    print(task_args)
 
     results = {k: [] for k in tasks}
     results["model_name"] = model_name
@@ -45,8 +54,12 @@ def run_benchmark(model_name: str, times: int, output_path: str, limit: int = No
         print(f"{i+1} iteration", "\n"*3)
 
         for task_name, task_fun in tasks.items():
-            task_results = task_fun(model_name, device, limit=limit, epochs=1)
+            task_results = task_fun(model_name, **task_args)
             results[task_name].append(task_results)
+
+            print(task_name)
+            for k, v in task_results.items():
+                print(f"{k} = {v:.4f}")
 
     with open(output_path, "w+") as f:
         json.dump(results, f, indent=4)
