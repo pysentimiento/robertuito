@@ -7,27 +7,11 @@ import pandas as pd
 import json
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
 from pysentimiento.tass import id2label as id2labeltass, label2id as label2idtass
-from pysentimiento.preprocessing import preprocess_tweet
+from finetune_vs_scratch.preprocessing import my_preprocess
 from pysentimiento.metrics import compute_metrics as compute_sentiment_metrics
 from datasets import Dataset, Value, ClassLabel, Features
 
-preprocess_args = {
-    "user_token": "@usuario",
-    "url_token": "url",
-    "hashtag_token": "hashtag",
-    "emoji_wrapper": "emoji",
-}
 
-special_tokens = ["@usuario", "url", "hashtag", "emoji"]
-
-def my_preprocess(tweet):
-    """
-    My preprocess
-    """
-    ret = preprocess_tweet(tweet, **preprocess_args)
-    ret = re.sub("\n+", ". ", ret)
-    ret = re.sub(r"\s+", " ", ret)
-    return ret.strip()
 
 def load_datasets(limit=None):
     """
@@ -100,7 +84,6 @@ def run_sentiment(model_name, device):
     batch_size = 8
     eval_batch_size = 4
     accumulation_steps = 4
-    #lr = 1e-3
 
     train_dataset = train_dataset.map(tokenize, batched=True, batch_size=batch_size)
     dev_dataset = dev_dataset.map(tokenize, batched=True, batch_size=eval_batch_size)
@@ -117,8 +100,6 @@ def run_sentiment(model_name, device):
     train_dataset = format_dataset(train_dataset)
     dev_dataset = format_dataset(dev_dataset)
     test_dataset = format_dataset(test_dataset)
-
-
 
 
     output_path = tempfile.mkdtemp()

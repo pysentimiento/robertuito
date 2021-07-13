@@ -12,6 +12,7 @@ tokenizers = "^0.10.3"
 fire = "^0.4.0"
 pysentimiento = {git = "https://github.com/pysentimiento/pysentimiento"}
 jupyterlab = "^3.0.16"
+setuptools = "^57.1.0"
 
 [tool.poetry.dev-dependencies]
 ipdb = "^0.13.9"
