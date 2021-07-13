@@ -1,5 +1,5 @@
+import re
 from pysentimiento.preprocessing import preprocess_tweet
-
 
 preprocess_args = {
     "user_token": "@usuario",
@@ -10,7 +10,7 @@ preprocess_args = {
 
 special_tokens = ["@usuario", "url", "hashtag", "emoji"]
 
-def my_preprocess(tweet):
+def preprocess(tweet):
     """
     My preprocess
     """

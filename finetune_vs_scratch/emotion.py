@@ -1,40 +1,68 @@
+
 """
 Run sentiment experiments
 """
-import os
-import pathlib
-import tempfile
+import torch
 import pandas as pd
+import os
+import tempfile
+import pathlib
+from .preprocessing import preprocess, special_tokens
 from .model import load_model_and_tokenizer
-from .preprocessing import preprocess
 from transformers import Trainer, TrainingArguments
 from datasets import Dataset, Value, ClassLabel, Features
-from pysentimiento.tass import id2label, label2id
-from pysentimiento.metrics import compute_metrics as compute_sentiment_metrics
+from sklearn.model_selection import train_test_split
+from sklearn.utils.class_weight import compute_class_weight
 
+from pysentimiento.emotion.datasets import id2label, label2id
+from pysentimiento.metrics import compute_metrics
+from.preprocessing import preprocess, special_tokens
+
+id2label = {
+    0: 'others',
+    1: 'joy',
+    2: 'sadness',
+    3: 'anger',
+    4: 'surprise',
+    5: 'disgust',
+    6: 'fear',
+}
+
+label2id = {v:k for k, v in id2label.items()}
 
 project_dir = pathlib.Path(os.path.dirname(__file__)).parent
 data_dir = os.path.join(project_dir, "data")
-sentiment_dir = os.path.join(data_dir, "sentiment")
+emotion_dir = os.path.join(data_dir, "emotion")
 
 
-def load_datasets(limit=None):
+def load_datasets(limit=None,random_state=2021):
     """
-    Load sentiment datasets
+    Load emotion recognition datasets
     """
+
+
+    train_df = pd.read_csv(os.path.join(emotion_dir, "train_es.csv"))
+    test_df = pd.read_csv(os.path.join(emotion_dir, "test_es.csv"))
+
+    train_df, dev_df = train_test_split(train_df, stratify=train_df["label"], random_state=random_state)
+
+
+    for df in [train_df, dev_df, test_df]:
+        for label, idx in label2id.items():
+            df.loc[df["label"] == label, "label"] = idx
+        df["label"] = df["label"].astype(int)
+        df["text"] = df["text"].apply(preprocess)
+
+
     features = Features({
         'text': Value('string'),
-        'lang': Value('string'),
-        'label': ClassLabel(num_classes=3, names=["neg", "neu", "pos"])
+        'label': ClassLabel(num_classes=len(id2label), names=[id2label[k] for k in sorted(id2label.keys())])
     })
-    df = pd.read_csv(os.path.join(sentiment_dir, "tass.csv"))
-    df["label"] = df["polarity"].apply(lambda x: label2id[x])
-    df["text"] = df["text"].apply(lambda x: preprocess(x))
-    columns = ["text", "lang", "label"]
 
-    train_dataset = Dataset.from_pandas(df[df["split"] == "train"], features=features)
-    dev_dataset = Dataset.from_pandas(df[df["split"] == "dev"], features=features)
-    test_dataset = Dataset.from_pandas(df[df["split"] == "test"], features=features)
+    train_dataset = Dataset.from_pandas(train_df, features=features)
+    dev_dataset = Dataset.from_pandas(dev_df, features=features)
+    test_dataset = Dataset.from_pandas(test_df, features=features)
+
 
     if limit:
         """
@@ -45,11 +73,25 @@ def load_datasets(limit=None):
         dev_dataset = dev_dataset.select(range(limit))
         test_dataset = test_dataset.select(range(limit))
 
+
     return train_dataset, dev_dataset, test_dataset
 
 
 
 
+class MultiLabelTrainer(Trainer):
+    def __init__(self, class_weight, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.class_weight = class_weight
+
+    def compute_loss(self, model, inputs, return_outputs=False):
+        labels = inputs.pop("labels")
+        outputs = model(**inputs)
+        logits = outputs.logits
+        loss_fct = torch.nn.CrossEntropyLoss(weight=self.class_weight)
+        num_labels = self.model.config.num_labels
+        loss = loss_fct(logits, labels)
+        return (loss, outputs) if return_outputs else loss
 
 
 def run(model_name, device, limit=None, epochs=5, batch_size=8, eval_batch_size=8):
@@ -58,11 +100,19 @@ def run(model_name, device, limit=None, epochs=5, batch_size=8, eval_batch_size=
     """
     print("Running sentiment experiments")
 
+
+
     model, tokenizer = load_model_and_tokenizer(model_name, num_labels=len(label2id), device=device)
     train_dataset, dev_dataset, test_dataset = load_datasets(limit=limit)
 
     def tokenize(batch):
         return tokenizer(batch['text'], padding='max_length', truncation=True)
+
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    class_weight = torch.Tensor(
+        compute_class_weight('balanced', list(id2label), y=train_dataset["label"])
+    ).to(device)
 
     accumulation_steps = 32 // batch_size
 
@@ -99,17 +149,19 @@ def run(model_name, device, limit=None, epochs=5, batch_size=8, eval_batch_size=
         metric_for_best_model="macro_f1",
     )
 
-    trainer = Trainer(
+
+    trainer = MultiLabelTrainer(
+        class_weight=class_weight,
         model=model,
         args=training_args,
-        compute_metrics=lambda x: compute_sentiment_metrics(x, id2label=id2label),
+        compute_metrics=lambda x: compute_metrics(x, id2label=id2label),
         train_dataset=train_dataset,
         eval_dataset=dev_dataset,
     )
 
+
     trainer.train()
 
     test_results = trainer.evaluate(test_dataset)
-
     os.system(f"rm -Rf {output_path}")
     return test_results
