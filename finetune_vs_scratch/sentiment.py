@@ -18,7 +18,7 @@ data_dir = os.path.join(project_dir, "data")
 sentiment_dir = os.path.join(data_dir, "sentiment")
 
 
-def load_datasets(limit=None):
+def load_datasets(data_path=None, limit=None):
     """
     Load sentiment datasets
     """
@@ -27,7 +27,8 @@ def load_datasets(limit=None):
         'lang': Value('string'),
         'label': ClassLabel(num_classes=3, names=["neg", "neu", "pos"])
     })
-    df = pd.read_csv(os.path.join(sentiment_dir, "tass.csv"))
+    data_path = data_path or os.path.join(sentiment_dir, "tass.csv")
+    df = pd.read_csv(data_path)
     df["label"] = df["polarity"].apply(lambda x: label2id[x])
     df["text"] = df["text"].apply(lambda x: preprocess(x))
     columns = ["text", "lang", "label"]
@@ -54,14 +55,14 @@ def load_datasets(limit=None):
 
 
 
-def run(model_name, device, limit=None, epochs=5, batch_size=32, eval_batch_size=32):
+def run(model_name, device, data_path=None, limit=None, epochs=5, batch_size=32, eval_batch_size=32):
     """
     Run sentiment analysis experiments
     """
     print("Running sentiment experiments")
 
     model, tokenizer = load_model_and_tokenizer(model_name, num_labels=len(label2id), device=device)
-    train_dataset, dev_dataset, test_dataset = load_datasets(limit=limit)
+    train_dataset, dev_dataset, test_dataset = load_datasets(data_path=data_path, limit=limit)
 
     def tokenize(batch):
         return tokenizer(batch['text'], padding='max_length', truncation=True)

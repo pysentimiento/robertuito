@@ -35,14 +35,15 @@ data_dir = os.path.join(project_dir, "data")
 emotion_dir = os.path.join(data_dir, "emotion")
 
 
-def load_datasets(limit=None,random_state=2021):
+def load_datasets(train_path=None, test_path=None, limit=None,random_state=2021):
     """
     Load emotion recognition datasets
     """
 
-
-    train_df = pd.read_csv(os.path.join(emotion_dir, "train_es.csv"))
-    test_df = pd.read_csv(os.path.join(emotion_dir, "test_es.csv"))
+    train_path = train_path or os.path.join(emotion_dir, "train_es.csv")
+    test_path = test_path or os.path.join(emotion_dir, "test_es.csv")
+    train_df = pd.read_csv(train_path)
+    test_df = pd.read_csv(test_path)
 
     train_df, dev_df = train_test_split(train_df, stratify=train_df["label"], random_state=random_state)
 
@@ -94,7 +95,7 @@ class MultiLabelTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-def run(model_name, device, limit=None, epochs=5, batch_size=32, eval_batch_size=16):
+def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=5, batch_size=32, eval_batch_size=16):
     """
     Run sentiment analysis experiments
     """
@@ -103,7 +104,7 @@ def run(model_name, device, limit=None, epochs=5, batch_size=32, eval_batch_size
 
 
     model, tokenizer = load_model_and_tokenizer(model_name, num_labels=len(label2id), device=device)
-    train_dataset, dev_dataset, test_dataset = load_datasets(limit=limit)
+    train_dataset, dev_dataset, test_dataset = load_datasets(train_path=train_path, test_path=test_path, limit=limit)
 
     def tokenize(batch):
         return tokenizer(batch['text'], padding='max_length', truncation=True)

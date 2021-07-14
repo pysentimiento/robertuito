@@ -193,7 +193,7 @@ def compute_extended_category_metrics(dataset, pred):
     return metrics
 
 
-def run(model_name, device, limit=None, epochs=5, batch_size=16, eval_batch_size=16,
+def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=5, batch_size=16, eval_batch_size=16,
     max_length=256):
     """
     Run Context Hate Experiments
@@ -201,7 +201,7 @@ def run(model_name, device, limit=None, epochs=5, batch_size=16, eval_batch_size
     model, tokenizer = load_model_and_tokenizer(model_name, num_labels=len(extended_hate_categories), device=device, max_length=max_length)
 
 
-    train_dataset, dev_dataset, test_dataset = load_datasets(limit=limit)
+    train_dataset, dev_dataset, test_dataset = load_datasets(train_path=train_path, test_path=test_path, limit=limit)
 
     def tokenize(batch):
         return tokenizer(
