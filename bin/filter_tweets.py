@@ -21,7 +21,9 @@ async def worker(name, queue, pbar, out_dir, tokenizer=None):
             # Get a "work item" out of the queue.
             batch = await queue.get()
 
-            tokenized_batch = tokenizer(batch, truncation=True)
+            # Count emojis just once
+            to_be_tokenized_batch = [re.sub("emoji.*?emoji", "emoji", tw) for tw in batch]
+            tokenized_batch = tokenizer(to_be_tokenized_batch, truncation=True)
             lens = [sum(x)-2 for x in tokenized_batch["attention_mask"]]
             # Los que vamos a salvar
             tweets = [tweet for (tweet, l) in zip(batch, lens) if l >= 6]
@@ -33,7 +35,7 @@ async def worker(name, queue, pbar, out_dir, tokenizer=None):
             queue.task_done()
 
 
-def process_file(file_path, queue, batch_size=2048):
+def process_file(file_path, queue, batch_size=4096):
     """
     Process file and add it to asyncio queue
     """
