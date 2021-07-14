@@ -260,7 +260,18 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
 
     trainer.train()
 
+    eval_training_args = TrainingArguments(
+        output_dir=".",
+        per_device_eval_batch_size=eval_batch_size,
+    )
 
-    test_results = trainer.evaluate(test_dataset)
+
+    eval_trainer = Trainer(
+        model=trainer.model,
+        args=eval_training_args,
+        compute_metrics=lambda pred: compute_extended_category_metrics(test_dataset, pred),
+    )
+
+    test_results = eval_trainer.evaluate(test_dataset)
     os.system(f"rm -Rf {output_path}")
     return test_results
