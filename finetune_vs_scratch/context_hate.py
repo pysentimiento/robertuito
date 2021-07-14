@@ -1,5 +1,6 @@
 import os
 import json
+from tkinter import W
 import pandas as pd
 import pathlib
 import tempfile
@@ -113,9 +114,14 @@ def load_datasets(train_path=None, test_path=None, limit=None):
     test_dataset = Dataset.from_pandas(test_df[columns], features=features)
 
     if limit:
-        train_dataset = train_dataset.select(range(limit))
-        dev_dataset = dev_dataset.select(range(limit))
-        test_dataset = test_dataset.select(range(limit))
+        """
+        Smoke test
+        """
+        print("\n\n", f"Limiting to {limit} instances")
+        train_dataset = train_dataset.select(range(min(limit, len(train_dataset))))
+        dev_dataset = dev_dataset.select(range(min(limit, len(dev_dataset))))
+        test_dataset = test_dataset.select(range(min(limit, len(test_dataset))))
+
 
     return train_dataset, dev_dataset, test_dataset
 

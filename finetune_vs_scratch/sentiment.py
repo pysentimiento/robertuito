@@ -36,14 +36,16 @@ def load_datasets(limit=None):
     dev_dataset = Dataset.from_pandas(df[df["split"] == "dev"], features=features)
     test_dataset = Dataset.from_pandas(df[df["split"] == "test"], features=features)
 
+
     if limit:
         """
         Smoke test
         """
         print("\n\n", f"Limiting to {limit} instances")
-        train_dataset = train_dataset.select(range(limit))
-        dev_dataset = dev_dataset.select(range(limit))
-        test_dataset = test_dataset.select(range(limit))
+        train_dataset = train_dataset.select(range(min(limit, len(train_dataset))))
+        dev_dataset = dev_dataset.select(range(min(limit, len(dev_dataset))))
+        test_dataset = test_dataset.select(range(min(limit, len(test_dataset))))
+
 
     return train_dataset, dev_dataset, test_dataset
 
