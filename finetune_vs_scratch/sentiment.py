@@ -55,7 +55,7 @@ def load_datasets(data_path=None, limit=None):
 
 
 
-def run(model_name, device, data_path=None, limit=None, epochs=5, batch_size=32, eval_batch_size=32):
+def run(model_name, device, data_path=None, limit=None, epochs=5, batch_size=32, eval_batch_size=32, **kwargs):
     """
     Run sentiment analysis experiments
     """
@@ -100,6 +100,7 @@ def run(model_name, device, data_path=None, limit=None, epochs=5, batch_size=32,
         logging_dir='./logs',
         load_best_model_at_end=True,
         metric_for_best_model="macro_f1",
+        **kwargs,
     )
 
     trainer = Trainer(

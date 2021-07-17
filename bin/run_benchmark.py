@@ -52,9 +52,10 @@ def run_benchmark(model_name: str, times: int, output_path: str, limit: int = No
     for i in range(times):
         print(("="*80+'\n')*3)
         print(f"{i+1} iteration", "\n"*3)
+        seed = 2021 + i
 
         for task_name, task_fun in tasks.items():
-            task_results = task_fun(model_name, **task_args)
+            task_results = task_fun(model_name, seed=seed, **task_args)
             results[task_name].append(task_results)
 
             print(task_name)

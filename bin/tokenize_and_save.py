@@ -1,8 +1,7 @@
 import datasets
 import random
 import fire
-import torch
-from transformers import BertTokenizerFast
+from finetune_vs_scratch.model import load_tokenizer
 from datasets import load_dataset, load_from_disk
 
 random.seed(2021)
@@ -20,8 +19,8 @@ def tokenize_and_save(input_path, output_path, limit=25600000, model_name = 'dcc
         dataset = dataset.select(idx)
 
     print(f"Loading {model_name} tokenizer -- {max_length} max len")
-    tokenizer = BertTokenizerFast.from_pretrained(model_name)
-    tokenizer.model_max_length = max_length
+
+    tokenizer = load_tokenizer(model_name, max_length)
 
     print("Tokenizing")
     def tokenize(batch):

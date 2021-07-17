@@ -194,7 +194,7 @@ def compute_extended_category_metrics(dataset, pred):
 
 
 def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=5, batch_size=16, eval_batch_size=16,
-    max_length=256):
+    max_length=256, **kwargs):
     """
     Run Context Hate Experiments
     """
@@ -247,6 +247,7 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
         logging_dir='./logs',
         load_best_model_at_end=True,
         metric_for_best_model="mean_f1",
+        **kwargs,
     )
 
     trainer = MultiLabelTrainer(
