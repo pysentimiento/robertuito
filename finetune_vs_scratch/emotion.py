@@ -9,7 +9,7 @@ import tempfile
 import pathlib
 from .preprocessing import preprocess, special_tokens
 from .model import load_model_and_tokenizer
-from transformers import Trainer, TrainingArguments
+from transformers import Trainer, TrainingArguments, DataCollatorWithPadding
 from datasets import Dataset, Value, ClassLabel, Features
 from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
@@ -95,7 +95,8 @@ class MultiLabelTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=5, batch_size=32, eval_batch_size=16, **kwargs):
+def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=5, batch_size=32, eval_batch_size=16,
+        use_dynamic_padding=True, **kwargs):
     """
     Run sentiment analysis experiments
     """
@@ -106,8 +107,10 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
     model, tokenizer = load_model_and_tokenizer(model_name, num_labels=len(label2id), device=device)
     train_dataset, dev_dataset, test_dataset = load_datasets(train_path=train_path, test_path=test_path, limit=limit)
 
+
+    padding = False if use_dynamic_padding else 'max_length'
     def tokenize(batch):
-        return tokenizer(batch['text'], padding='max_length', truncation=True)
+        return tokenizer(batch['text'], padding=padding, truncation=True)
 
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -121,17 +124,21 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
     dev_dataset = dev_dataset.map(tokenize, batched=True, batch_size=eval_batch_size)
     test_dataset = test_dataset.map(tokenize, batched=True, batch_size=eval_batch_size)
 
-    def format_dataset(dataset):
-        dataset = dataset.map(lambda examples: {'labels': examples['label']})
-        columns = ['input_ids', 'attention_mask', 'labels']
-        if 'token_type_ids' in dataset.features:
-            columns.append('token_type_ids')
-        dataset.set_format(type='torch', columns=columns)
-        return dataset
+    data_collator = None
+    if use_dynamic_padding:
+        data_collator = DataCollatorWithPadding(tokenizer, padding="longest")
+    else:
+        def format_dataset(dataset):
+            dataset = dataset.map(lambda examples: {'labels': examples['label']})
+            columns = ['input_ids', 'attention_mask', 'labels']
+            if 'token_type_ids' in dataset.features:
+                columns.append('token_type_ids')
+            dataset.set_format(type='torch', columns=columns)
+            return dataset
 
-    train_dataset = format_dataset(train_dataset)
-    dev_dataset = format_dataset(dev_dataset)
-    test_dataset = format_dataset(test_dataset)
+        train_dataset = format_dataset(train_dataset)
+        dev_dataset = format_dataset(dev_dataset)
+        test_dataset = format_dataset(test_dataset)
 
 
     output_path = tempfile.mkdtemp()
@@ -159,6 +166,7 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
         compute_metrics=lambda x: compute_metrics(x, id2label=id2label),
         train_dataset=train_dataset,
         eval_dataset=dev_dataset,
+        data_collator=data_collator,
     )
 
 

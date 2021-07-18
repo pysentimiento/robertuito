@@ -7,7 +7,7 @@ import tempfile
 import pandas as pd
 from .model import load_model_and_tokenizer
 from .preprocessing import preprocess
-from transformers import Trainer, TrainingArguments
+from transformers import Trainer, TrainingArguments, DataCollatorWithPadding
 from datasets import Dataset, Value, ClassLabel, Features
 from pysentimiento.tass import id2label, label2id
 from pysentimiento.metrics import compute_metrics as compute_sentiment_metrics
@@ -31,7 +31,6 @@ def load_datasets(data_path=None, limit=None):
     df = pd.read_csv(data_path)
     df["label"] = df["polarity"].apply(lambda x: label2id[x])
     df["text"] = df["text"].apply(lambda x: preprocess(x))
-    columns = ["text", "lang", "label"]
 
     train_dataset = Dataset.from_pandas(df[df["split"] == "train"], features=features)
     dev_dataset = Dataset.from_pandas(df[df["split"] == "dev"], features=features)
@@ -55,7 +54,7 @@ def load_datasets(data_path=None, limit=None):
 
 
 
-def run(model_name, device, data_path=None, limit=None, epochs=5, batch_size=32, eval_batch_size=32, **kwargs):
+def run(model_name, device, data_path=None, limit=None, epochs=5, batch_size=32, eval_batch_size=32, use_dynamic_padding=True, **kwargs):
     """
     Run sentiment analysis experiments
     """
@@ -64,8 +63,9 @@ def run(model_name, device, data_path=None, limit=None, epochs=5, batch_size=32,
     model, tokenizer = load_model_and_tokenizer(model_name, num_labels=len(label2id), device=device)
     train_dataset, dev_dataset, test_dataset = load_datasets(data_path=data_path, limit=limit)
 
+    padding = False if use_dynamic_padding else 'max_length'
     def tokenize(batch):
-        return tokenizer(batch['text'], padding='max_length', truncation=True)
+        return tokenizer(batch['text'], padding=padding, truncation=True)
 
     accumulation_steps = 32 // batch_size
 
@@ -73,17 +73,21 @@ def run(model_name, device, data_path=None, limit=None, epochs=5, batch_size=32,
     dev_dataset = dev_dataset.map(tokenize, batched=True, batch_size=eval_batch_size)
     test_dataset = test_dataset.map(tokenize, batched=True, batch_size=eval_batch_size)
 
-    def format_dataset(dataset):
-        dataset = dataset.map(lambda examples: {'labels': examples['label']})
-        columns = ['input_ids', 'attention_mask', 'labels']
-        if 'token_type_ids' in dataset.features:
-            columns.append('token_type_ids')
-        dataset.set_format(type='torch', columns=columns)
-        return dataset
+    data_collator = None
+    if use_dynamic_padding:
+        data_collator = DataCollatorWithPadding(tokenizer, padding="longest")
+    else:
+        def format_dataset(dataset):
+            dataset = dataset.map(lambda examples: {'labels': examples['label']})
+            columns = ['input_ids', 'attention_mask', 'labels']
+            if 'token_type_ids' in dataset.features:
+                columns.append('token_type_ids')
+            dataset.set_format(type='torch', columns=columns)
+            return dataset
 
-    train_dataset = format_dataset(train_dataset)
-    dev_dataset = format_dataset(dev_dataset)
-    test_dataset = format_dataset(test_dataset)
+        train_dataset = format_dataset(train_dataset)
+        dev_dataset = format_dataset(dev_dataset)
+        test_dataset = format_dataset(test_dataset)
 
 
     output_path = tempfile.mkdtemp()
@@ -109,6 +113,7 @@ def run(model_name, device, data_path=None, limit=None, epochs=5, batch_size=32,
         compute_metrics=lambda x: compute_sentiment_metrics(x, id2label=id2label),
         train_dataset=train_dataset,
         eval_dataset=dev_dataset,
+        data_collator=data_collator,
     )
 
     trainer.train()

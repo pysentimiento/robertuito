@@ -5,3 +5,12 @@
 ```
 poetry install
 ```
+
+
+### Smoke test
+
+Test the benchmark running
+
+```
+./smoke_test.sh
+```

@@ -10,7 +10,7 @@ from torch.nn import BCEWithLogitsLoss
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_recall_fscore_support
 from datasets import Dataset, Value, ClassLabel, Features
-from transformers import Trainer, TrainingArguments
+from transformers import Trainer, TrainingArguments, DataCollatorWithPadding
 from .preprocessing import preprocess
 from .model import load_model_and_tokenizer
 
@@ -194,7 +194,7 @@ def compute_extended_category_metrics(dataset, pred):
 
 
 def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=5, batch_size=16, eval_batch_size=16,
-    max_length=256, **kwargs):
+    max_length=256, use_dynamic_padding=True, **kwargs):
     """
     Run Context Hate Experiments
     """
@@ -203,10 +203,11 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
 
     train_dataset, dev_dataset, test_dataset = load_datasets(train_path=train_path, test_path=test_path, limit=limit)
 
+    padding = False if use_dynamic_padding else 'max_length'
     def tokenize(batch):
         return tokenizer(
             batch["text"], batch["title"],
-            padding='max_length', truncation='longest_first')
+            padding=padding, truncation='longest_first')
 
     print("Tokenizing and formatting datasets...")
     train_dataset = train_dataset.map(tokenize, batched=True, batch_size=batch_size)
@@ -217,8 +218,20 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
         def get_category_labels(examples):
             return {'labels': torch.Tensor([examples[cat] for cat in extended_hate_categories])}
         dataset = dataset.map(get_category_labels)
-        dataset.set_format(type='torch', columns=['input_ids', 'token_type_ids', 'attention_mask', 'labels'])
+
+        if use_dynamic_padding:
+            return dataset
+
+        columns = ['input_ids', 'attention_mask', 'labels']
+
+        if 'token_type_ids' in dataset.features:
+            columns.append('token_type_ids')
+
+        dataset.set_format(type='torch', columns=columns)
         return dataset
+
+    data_collator = DataCollatorWithPadding(tokenizer, padding="longest") if use_dynamic_padding else None
+
 
     train_dataset = format_dataset(train_dataset)
     dev_dataset = format_dataset(dev_dataset)
@@ -257,9 +270,14 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
         compute_metrics=lambda pred: compute_extended_category_metrics(dev_dataset, pred),
         train_dataset=train_dataset,
         eval_dataset=dev_dataset,
+        data_collator=data_collator,
     )
 
     trainer.train()
+
+    """
+    TODO: ¿Por qué hacía esto?
+    """
 
     eval_training_args = TrainingArguments(
         output_dir=".",
@@ -271,6 +289,7 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
         model=trainer.model,
         args=eval_training_args,
         compute_metrics=lambda pred: compute_extended_category_metrics(test_dataset, pred),
+        data_collator=data_collator,
     )
 
     test_results = eval_trainer.evaluate(test_dataset)
