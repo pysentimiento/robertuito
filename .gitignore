@@ -135,3 +135,5 @@ data/*
 .vscode/*
 models/*
 workspace.code-workspace
+logs/*
+runs/*
