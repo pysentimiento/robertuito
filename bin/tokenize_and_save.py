@@ -6,7 +6,7 @@ from datasets import load_dataset, load_from_disk
 
 random.seed(2021)
 
-def tokenize_and_save(input_path, output_path, limit=25600000, model_name = 'dccuchile/bert-base-spanish-wwm-cased', max_length=128):
+def tokenize_and_save(input_path, output_path, limit=25_600_000, padding=False, model_name = 'dccuchile/bert-base-spanish-wwm-uncased', num_proc=24, max_length=128):
     """
     Tokenize and save arrow dataset
     """
@@ -24,9 +24,9 @@ def tokenize_and_save(input_path, output_path, limit=25600000, model_name = 'dcc
 
     print("Tokenizing")
     def tokenize(batch):
-        return tokenizer(batch['text'], padding='max_length', truncation=True, return_special_tokens_mask=True)
+        return tokenizer(batch['text'], padding=padding, truncation=True, return_special_tokens_mask=True)
 
-    dataset = dataset.map(tokenize, batch_size=2048, batched=True)
+    dataset = dataset.map(tokenize, batch_size=2048, batched=True, num_proc=num_proc)
 
     dataset.save_to_disk(output_path)
 
