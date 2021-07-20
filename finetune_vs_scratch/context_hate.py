@@ -193,7 +193,8 @@ def compute_extended_category_metrics(dataset, pred):
     return metrics
 
 
-def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=5, batch_size=16, eval_batch_size=16,
+def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=5,
+    batch_size=16, eval_batch_size=16, group_by_length=True,
     max_length=256, use_dynamic_padding=True, **kwargs):
     """
     Run Context Hate Experiments
@@ -260,6 +261,7 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
         logging_dir='./logs',
         load_best_model_at_end=True,
         metric_for_best_model="mean_f1",
+        group_by_length=group_by_length,
         **kwargs,
     )
 
@@ -276,7 +278,7 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
     trainer.train()
 
     """
-    TODO: ¿Por qué hacía esto?
+    TODO: ¿Por qué hacía esto? Por algún motivo el otro Trainer no anda bien para evaluar
     """
 
     eval_training_args = TrainingArguments(

@@ -6,14 +6,16 @@ import json
 from finetune_vs_scratch.sentiment import run as run_sentiment
 from finetune_vs_scratch.emotion import run as run_emotion
 from finetune_vs_scratch.context_hate import run as run_context_hate
+from finetune_vs_scratch.hate import run as run_hateval
 
 tasks = {
+    "hate": run_hateval,
     "context_hate": run_context_hate,
     "sentiment": run_sentiment,
     "emotion": run_emotion,
 }
 
-def run_benchmark(model_name: str, times: int, output_path: str, limit: int = None, max_epochs: int = None):
+def run_benchmark(model_name: str, times: int, output_path: str, limit: int = None, max_epochs: int = None, tasks=None):
     """
     Run benchmark
 

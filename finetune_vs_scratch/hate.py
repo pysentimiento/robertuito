@@ -1,55 +1,45 @@
 
 """
-Run emotion experiments
+Run hatEval experiments
 """
-import torch
 import pandas as pd
 import os
 import pathlib
-from datasets import Dataset, Value, ClassLabel, Features
-from sklearn.model_selection import train_test_split
-from sklearn.utils.class_weight import compute_class_weight
-
-from pysentimiento.emotion.datasets import id2label, label2id
-from .model import load_model_and_tokenizer
 from .preprocessing import preprocess
+from .model import load_model_and_tokenizer
+from datasets import Dataset, Value, ClassLabel, Features
+from pysentimiento.emotion.datasets import id2label, label2id
+from .preprocessing import preprocess, special_tokens
 from .experiments import run_experiment
 
-
 id2label = {
-    0: 'others',
-    1: 'joy',
-    2: 'sadness',
-    3: 'anger',
-    4: 'surprise',
-    5: 'disgust',
-    6: 'fear',
+    0: 'ok',
+    1: 'hateful',
 }
 
 label2id = {v:k for k, v in id2label.items()}
 
 project_dir = pathlib.Path(os.path.dirname(__file__)).parent
-data_dir = os.path.join(project_dir, "data")
-emotion_dir = os.path.join(data_dir, "emotion")
+data_dir = os.path.join(project_dir, "data", "hate")
 
 
-def load_datasets(train_path=None, test_path=None, limit=None,random_state=2021):
+def load_datasets(train_path=None, dev_path=None, test_path=None, limit=None,random_state=2021):
     """
     Load emotion recognition datasets
     """
 
-    train_path = train_path or os.path.join(emotion_dir, "train_es.csv")
-    test_path = test_path or os.path.join(emotion_dir, "test_es.csv")
-    train_df = pd.read_csv(train_path)
-    test_df = pd.read_csv(test_path)
+    train_path = train_path or os.path.join(data_dir, "hateval2019_es_train.csv")
+    dev_path = dev_path or os.path.join(data_dir, "hateval2019_es_dev.csv")
+    test_path = test_path or os.path.join(data_dir, "hateval2019_es_test.csv")
 
-    train_df, dev_df = train_test_split(train_df, stratify=train_df["label"], random_state=random_state)
+
+    train_df = pd.read_csv(train_path)
+    dev_df = pd.read_csv(dev_path)
+    test_df = pd.read_csv(test_path)
 
 
     for df in [train_df, dev_df, test_df]:
-        for label, idx in label2id.items():
-            df.loc[df["label"] == label, "label"] = idx
-        df["label"] = df["label"].astype(int)
+        df["label"] = df["HS"].astype(int)
         df["text"] = df["text"].apply(preprocess)
 
 
@@ -78,26 +68,23 @@ def load_datasets(train_path=None, test_path=None, limit=None,random_state=2021)
 
 
 
-
 def run(
-    model_name, device, train_path=None, test_path=None, limit=None, epochs=5, batch_size=32,
+    model_name, device, limit=None, epochs=5, batch_size=32,
     eval_batch_size=16, accumulation_steps=1, use_dynamic_padding=True, **kwargs):
     """
-    Run emotion experiments
+    Run sentiment analysis experiments
     """
-    print("Running emotion experiments")
-
+    print("Running hatEval experiments")
 
 
     model, tokenizer = load_model_and_tokenizer(model_name, num_labels=len(label2id), device=device)
-    train_dataset, dev_dataset, test_dataset = load_datasets(train_path=train_path, test_path=test_path, limit=limit)
-
-    class_weight = torch.Tensor(
-        compute_class_weight('balanced', list(id2label), y=train_dataset["label"])
+    train_dataset, dev_dataset, test_dataset = load_datasets(
+        limit=limit
     )
+
 
     return run_experiment(
         model, tokenizer, train_dataset, dev_dataset, test_dataset, id2label,
-        class_weight=class_weight, epochs=epochs, batch_size=batch_size, accumulation_steps=accumulation_steps, use_dynamic_padding=use_dynamic_padding,
-        **kwargs,
+        epochs=epochs, batch_size=batch_size, accumulation_steps=accumulation_steps,
+        use_dynamic_padding=use_dynamic_padding, **kwargs,
     )
