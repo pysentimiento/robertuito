@@ -1,4 +1,60 @@
 {
+    "hate": [
+        {
+            "eval_loss": 1.2544245719909668,
+            "eval_ok_f1": 0.8042035398230089,
+            "eval_ok_precision": 0.8375576036866359,
+            "eval_ok_recall": 0.7734042553191489,
+            "eval_hateful_f1": 0.7456896551724138,
+            "eval_hateful_precision": 0.7090163934426229,
+            "eval_hateful_recall": 0.7863636363636364,
+            "eval_micro_f1": 0.77875,
+            "eval_macro_f1": 0.7749465703964233,
+            "eval_macro_precision": 0.7732869982719421,
+            "eval_macro_recall": 0.7798839807510376,
+            "eval_acc": 0.77875,
+            "eval_runtime": 3.3277,
+            "eval_samples_per_second": 480.819,
+            "eval_steps_per_second": 30.051,
+            "epoch": 5.0
+        },
+        {
+            "eval_loss": 1.3767672777175903,
+            "eval_ok_f1": 0.7886685552407932,
+            "eval_ok_precision": 0.8436363636363636,
+            "eval_ok_recall": 0.7404255319148936,
+            "eval_hateful_f1": 0.7400696864111498,
+            "eval_hateful_precision": 0.6851612903225807,
+            "eval_hateful_recall": 0.8045454545454546,
+            "eval_micro_f1": 0.766875,
+            "eval_macro_f1": 0.7643691301345825,
+            "eval_macro_precision": 0.7643988132476807,
+            "eval_macro_recall": 0.7724854946136475,
+            "eval_acc": 0.766875,
+            "eval_runtime": 3.333,
+            "eval_samples_per_second": 480.049,
+            "eval_steps_per_second": 30.003,
+            "epoch": 5.0
+        },
+        {
+            "eval_loss": 0.9672870635986328,
+            "eval_ok_f1": 0.7936145952109463,
+            "eval_ok_precision": 0.855036855036855,
+            "eval_ok_recall": 0.7404255319148936,
+            "eval_hateful_f1": 0.7496542185338865,
+            "eval_hateful_precision": 0.6895674300254453,
+            "eval_hateful_recall": 0.8212121212121212,
+            "eval_micro_f1": 0.77375,
+            "eval_macro_f1": 0.7716343998908997,
+            "eval_macro_precision": 0.7723021507263184,
+            "eval_macro_recall": 0.7808188199996948,
+            "eval_acc": 0.77375,
+            "eval_runtime": 3.3397,
+            "eval_samples_per_second": 479.09,
+            "eval_steps_per_second": 29.943,
+            "epoch": 5.0
+        }
+    ],
     "context_hate": [
         {
             "eval_loss": 0.07722792029380798,
