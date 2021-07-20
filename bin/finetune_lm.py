@@ -12,7 +12,11 @@ from transformers import BertForMaskedLM, BertTokenizer, AutoTokenizer
 from finetune_vs_scratch.preprocessing import special_tokens
 from finetune_vs_scratch.model import load_model_and_tokenizer, load_tokenizer
 
-def finetune_lm(output_dir, train_path, test_path, num_steps, model_name = 'dccuchile/bert-base-spanish-wwm-uncased', batch_size=2048, num_eval_batches=50):
+def finetune_lm(
+    output_dir, train_path, test_path, num_steps, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
+    batch_size=2048, num_eval_batches=50, deepspeed=None, limit=None, eval_and_save_steps=100, per_device_batch_size=32,
+    accumulation_steps=32, warmup_ratio=0.06, weight_decay=0.01, learning_rate=5e-4
+):
     """
     Finetune LM
     """
@@ -22,12 +26,17 @@ def finetune_lm(output_dir, train_path, test_path, num_steps, model_name = 'dccu
     train_dataset = load_from_disk(train_path)
     test_dataset = load_from_disk(test_path)
 
+    if limit:
+        print(f"Limiting to {limit}")
 
-    tweets_needed = num_steps * batch_size
+        train_dataset = train_dataset.select(list(range(limit)))
+        test_dataset = test_dataset.select(list(range(limit)))
+    else:
+        tweets_needed = num_steps * batch_size
 
-    print(f"Subselecting {tweets_needed}")
-    train_dataset = train_dataset.select(list(range(tweets_needed)))
-    test_dataset = test_dataset.select(list(range(batch_size * num_eval_batches)))
+        print(f"Subselecting {tweets_needed}")
+        train_dataset = train_dataset.select(list(range(tweets_needed)))
+        test_dataset = test_dataset.select(list(range(batch_size * num_eval_batches)))
 
 
     print("Loading model")
@@ -50,31 +59,33 @@ def finetune_lm(output_dir, train_path, test_path, num_steps, model_name = 'dccu
     train_dataset = train_dataset.remove_columns(["text"])
     test_dataset = test_dataset.remove_columns(["text"])
 
-    per_device_batch_size = 32
-    num_devices = 2
-    eval_and_save_steps = 250
-    grad_accumulation = 2048 // (per_device_batch_size * num_devices)
+    args = {
+        "eval_steps":eval_and_save_steps,
+        "save_steps":eval_and_save_steps,
+        "logging_steps": 50,
+        "per_device_train_batch_size": per_device_batch_size,
+        "per_device_eval_batch_size": per_device_batch_size,
+        "gradient_accumulation_steps": accumulation_steps,
+        "deepspeed": deepspeed,
+        "learning_rate": learning_rate,
+        "weight_decay": weight_decay,
+        "warmup_ratio": warmup_ratio,
+    }
+
+    print(args)
 
     training_args = TrainingArguments(
         output_dir=output_dir,
         evaluation_strategy="steps",
         max_steps=num_steps,
 
-        per_device_train_batch_size=per_device_batch_size,
-        per_device_eval_batch_size=per_device_batch_size,
-        gradient_accumulation_steps=grad_accumulation,
 
-        eval_steps=eval_and_save_steps,
-        save_steps=eval_and_save_steps,
-        logging_steps=50,
         do_eval= True,
         remove_unused_columns=False,
         logging_dir="./logs",
         logging_strategy="steps",
 
-        learning_rate=5e-4,
-        weight_decay=0.01,
-        warmup_ratio=0.06,
+        **args,
     )
 
     print("Training!")
