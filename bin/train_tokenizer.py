@@ -30,7 +30,6 @@ def train_tokenizer(
         lowercase=lowercase,
     )
 
-    tokenizer.add_tokens(special_tokens)
     print(tokenizer)
     print("Added: ", special_tokens)
     print("Training...")
@@ -45,8 +44,10 @@ def train_tokenizer(
         limit_alphabet=limit_alphabet,
         wordpieces_prefix="##",
     )
+    tokenizer.add_tokens(special_tokens)
 
-    tokenizer.save(output_path)
+    tokenizer.save(os.path.join(output_path, "tokenizer.json"))
+    tokenizer.save_model(output_path)
     print(f"Saved to {output_path}")
 
 if __name__ == '__main__':
