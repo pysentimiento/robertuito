@@ -15,7 +15,7 @@ from finetune_vs_scratch.model import load_model_and_tokenizer, load_tokenizer
 def finetune_lm(
     output_dir, train_path, test_path, num_steps, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
     batch_size=2048, num_eval_batches=50, deepspeed=None, limit=None, eval_and_save_steps=100, per_device_batch_size=32,
-    accumulation_steps=32, warmup_ratio=0.06, weight_decay=0.01, learning_rate=5e-4
+    accumulation_steps=32, warmup_ratio=0.06, weight_decay=0.01, learning_rate=5e-4, on_the_fly=False,
 ):
     """
     Finetune LM
@@ -52,12 +52,14 @@ def finetune_lm(
     def tokenize(batch):
         return tokenizer(batch['text'], padding=False, truncation=True, return_special_tokens_mask=True)
 
-    train_dataset = train_dataset.map(tokenize, batched=True, batch_size=batch_size, num_proc=24)
-    test_dataset = test_dataset.map(tokenize, batched=True, batch_size=batch_size, num_proc=24)
-
-
-    train_dataset = train_dataset.remove_columns(["text"])
-    test_dataset = test_dataset.remove_columns(["text"])
+    if on_the_fly:
+        train_dataset.set_transform(tokenize)
+        test_dataset.set_transform(tokenize)
+    else:
+        train_dataset = train_dataset.map(tokenize, batched=True, batch_size=batch_size, num_proc=24)
+        test_dataset = test_dataset.map(tokenize, batched=True, batch_size=batch_size, num_proc=24)
+        train_dataset = train_dataset.remove_columns(["text"])
+        test_dataset = test_dataset.remove_columns(["text"])
 
     args = {
         "eval_steps":eval_and_save_steps,
@@ -103,6 +105,8 @@ def finetune_lm(
     trainer.save_model(output_dir)
     tokenizer.save_pretrained(output_dir)
 
+def _mp_fn(*args, **kwargs):
+    return fire.Fire(finetune_lm)
 
 if __name__ == '__main__':
     fire.Fire(finetune_lm)
