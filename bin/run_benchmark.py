@@ -33,8 +33,14 @@ def run_benchmark(model_name: str, times: int, output_path: str, limit: int = No
     """
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    if task not in tasks.keys():
-        raise ValueError(f"task must be one of {tasks.keys()}")
+    if task:
+        if task not in tasks.keys():
+            raise ValueError(f"task must be one of {tasks.keys()}")
+        else:
+            run_tasks = [task]
+    else:
+        run_tasks = tasks.keys()
+
     print(("*"*80+'\n')*3)
     print(f"Running benchmark with {model_name}")
     print(f"Using {device}", "\n"*3)
@@ -59,7 +65,7 @@ def run_benchmark(model_name: str, times: int, output_path: str, limit: int = No
         seed = 2021 + i
 
         for task_name, task_fun in tasks.items():
-            if task is not None and task_name != task:
+            if task_name not in run_tasks:
                 continue
             task_results = task_fun(model_name, seed=seed, **task_args)
             results[task_name].append(task_results)
