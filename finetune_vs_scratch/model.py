@@ -2,7 +2,10 @@ from .preprocessing import special_tokens
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 def load_tokenizer(model_name, max_length, model=None, tokenizer_class=AutoTokenizer):
-    tokenizer = tokenizer_class.from_pretrained(model_name)
+    tokenizer = tokenizer_class.from_pretrained(
+        model_name,
+        never_split=special_tokens
+    )
     tokenizer.model_max_length = max_length
     vocab = tokenizer.get_vocab()
     new_tokens_to_add = [tok for tok in special_tokens if tok not in vocab]
