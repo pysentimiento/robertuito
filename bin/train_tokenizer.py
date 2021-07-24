@@ -22,6 +22,7 @@ def train_tokenizer(
     tweet_files = glob.glob(os.path.join(train_path, "*.txt"))
 
     print(f"Found {len(tweet_files)} files in {train_path}")
+    bert_special_tokens = ["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]"]
 
     tokenizer = BertWordPieceTokenizer(
         clean_text=clean_text,
@@ -29,10 +30,14 @@ def train_tokenizer(
         strip_accents=strip_accents,
         lowercase=lowercase,
     )
+    print(f"Clean text: {clean_text}")
+    print(f"Strip accents: {strip_accents}")
+    tokenizer.add_special_tokens(special_tokens)
 
     print(tokenizer)
     print("Added: ", special_tokens)
     print("Training...")
+    print(tokenizer.get_vocab())
 
     tokenizer.train(
         tweet_files,
@@ -40,13 +45,10 @@ def train_tokenizer(
         min_frequency=min_frequency,
         show_progress=True,
 
-        special_tokens=["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]"],
+        special_tokens=bert_special_tokens + special_tokens,
         limit_alphabet=limit_alphabet,
         wordpieces_prefix="##",
     )
-    tokenizer.add_tokens(special_tokens)
-
-    tokenizer.save(os.path.join(output_path, "tokenizer.json"))
     tokenizer.save_model(output_path)
     print(f"Saved to {output_path}")
 
