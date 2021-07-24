@@ -2,6 +2,13 @@
 
 ```
 echo 'set -g default-terminal "xterm-256color"' >> .tmux.conf
+git config --global alias.co checkout
+git config --global alias.br branch
+git config --global alias.ci commit
+git config --global alias.st status
+git config --global user.email jmperez.85@gmail.com
+git config --global user.name "Juan Manuel Pérez"
+ git config --global core.editor vi
 ```
 
 1. Install pyenv
@@ -20,20 +27,7 @@ pyenv install 3.8.11
 
 ```
 gcloud config set compute/zone us-central1-f
-for i in $(seq -f "%03g" 1 5)
-do
-    tpu_name="pysentimiento-tpu-${i}"
-    echo "Creating ${tpu_name}"
-    gcloud compute tpus create $tpu_name \
-        --accelerator-type=v2-8 \
-        --version=pytorch-1.9 \
-        --preemptible
-done
-```
 
-O crear una sola
-```
-gcloud config set compute/zone us-central1-f
 tpu_name="pysentimiento-tpu"
 echo "Creating ${tpu_name}"
 gcloud compute tpus create $tpu_name \
@@ -45,7 +39,7 @@ gcloud compute tpus create $tpu_name \
 3.
 
 ```
-export TPU_IP_ADDRESS=TPU_IP
+export TPU_IP_ADDRESS=10.103.254.186
 export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 ```
 
@@ -61,3 +55,10 @@ cd finetune_vs_scratch
 
 ```
 gsutil cp -r gs://pysentimiento/filtered_tweets data/
+```
+
+6. Correr finetuning
+
+```
+
+```
