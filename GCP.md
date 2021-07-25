@@ -28,7 +28,7 @@ pyenv install 3.8.11
 ```
 gcloud config set compute/zone us-central1-f
 
-tpu_name="pysentimiento-tpu"
+tpu_name="pysentimiento-tpu-ne"
 echo "Creating ${tpu_name}"
 gcloud compute tpus create $tpu_name \
     --accelerator-type=v2-8 \
@@ -39,7 +39,7 @@ gcloud compute tpus create $tpu_name \
 3.
 
 ```
-export TPU_IP_ADDRESS=10.103.254.186
+export TPU_IP_ADDRESS=XXXXXXX
 export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 ```
 
@@ -60,5 +60,6 @@ gsutil cp -r gs://pysentimiento/filtered_tweets data/
 6. Correr finetuning
 
 ```
-
+num_steps=12500; python bin/finetune_lm.py --dataset_path  data/arrow/dataset/ --output_dir models/beto-uncased-${num_steps}/ --num_steps $num_steps --model_name 'dccuchile/bert-base-spanish-wwm-uncased' --num_tpu_cores 8 --per_device_
+batch_size 64 --accumulation_steps 4  --num_proc 8 --on_the_fly
 ```
