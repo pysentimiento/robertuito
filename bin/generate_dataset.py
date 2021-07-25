@@ -8,7 +8,7 @@ from datasets import load_dataset, load_from_disk
 
 random.seed(2021)
 
-def generate_dataset(input_path, output_path, num_files=6):
+def generate_dataset(input_path, output_path, num_files=6, limit=None):
     """
     Generate train and test split
     """
@@ -20,6 +20,14 @@ def generate_dataset(input_path, output_path, num_files=6):
     train_files, test_files = tweet_files[:-1], tweet_files[-1:]
 
     dataset = load_dataset("text", data_files={"train": train_files, "test": test_files})
+
+
+    if limit:
+        print(f"Limiting to {limit}")
+
+        dataset["train"] = dataset["train"].select(list(range(limit)))
+        dataset["test"] = dataset["test"].select(list(range(limit)))
+
 
     print("Saving")
     dataset.save_to_disk(output_path)
