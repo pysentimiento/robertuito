@@ -14,17 +14,12 @@ def tokenize(tokenizer, batch, padding='max_length'):
     return tokenizer(batch['text'], padding=padding, truncation=True, return_special_tokens_mask=True)
 
 
-def train(model, tokenizer, train_dataset, test_dataset, output_dir, num_steps, on_the_fly=False, **kwargs):
+def train(model, tokenizer, train_dataset, test_dataset, output_dir, num_steps, on_the_fly=False, padding='max_length', **kwargs):
+    print("Entering training function")
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer, mlm=True, mlm_probability=0.15,
     )
 
-    if on_the_fly:
-        print("On the fly tokenization")
-        train_dataset.set_transform(lambda x: tokenize(tokenizer, x))
-        test_dataset.set_transform(lambda x: tokenize(tokenizer, x))
-        print(train_dataset[0])
-        print(len(train_dataset[1000]["input_ids"]))
 
     training_args = TrainingArguments(
         output_dir=output_dir,
@@ -40,6 +35,28 @@ def train(model, tokenizer, train_dataset, test_dataset, output_dir, num_steps, 
         **kwargs,
     )
 
+
+
+    if on_the_fly:
+        print("On the fly tokenization")
+
+        train_dataset.set_transform(lambda x: tokenize(tokenizer, x, padding))
+        test_dataset.set_transform(lambda x: tokenize(tokenizer, x, padding))
+        print(train_dataset[0])
+        print(len(train_dataset[1000]["input_ids"]))
+    else:
+        print("Tokenization preprocessing")
+        batch_size = 2048
+        num_proc = 8
+        with training_args.main_process_first(desc="dataset map tokenization"):
+            print("Tokenizing")
+            train_dataset = train_dataset.map(lambda x: tokenize(tokenizer, x, padding), batched=True, batch_size=batch_size, num_proc=num_proc)
+            test_dataset = test_dataset.map(lambda x: tokenize(tokenizer, x, padding), batched=True, batch_size=batch_size, num_proc=num_proc)
+            train_dataset = train_dataset.remove_columns(["text"])
+            test_dataset = test_dataset.remove_columns(["text"])
+
+    print(train_dataset[0])
+    print(len(train_dataset[0]["input_ids"]))
     print("Training!")
     trainer = Trainer(
         model=model,
@@ -55,25 +72,25 @@ def train(model, tokenizer, train_dataset, test_dataset, output_dir, num_steps, 
     trainer.save_model(output_dir)
     tokenizer.save_pretrained(output_dir)
 
-def _mp_fn(index, model_name, dataset_path, output_dir, num_steps, num_eval_batches, training_args):
+def _mp_fn(index, model_name, dataset_path, output_dir, num_steps, num_eval_batches, padding, training_args):
     print("Loading model...")
     model = BertForMaskedLM.from_pretrained(model_name, return_dict=True)
     tokenizer = load_tokenizer(model_name, 128, model=model)
     print(f"Loading from {dataset_path}...")
     dataset = load_from_disk(dataset_path)
-    print("Done")
     train_dataset, test_dataset = dataset["train"], dataset["test"]
 
     test_dataset = test_dataset.select(list(range(2048 * num_eval_batches)))
+    print("Done loading dataset")
 
-    return train(model, tokenizer, train_dataset, test_dataset, output_dir, num_steps, **training_args)
+    return train(model, tokenizer, train_dataset, test_dataset, output_dir, num_steps, padding=padding, **training_args)
 
 def finetune_lm(
     output_dir, num_steps, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
     input_dir=None, dataset_path=None,
     batch_size=2048, num_eval_batches=20, deepspeed=None, limit=None, eval_steps=200, save_steps=1000,
     per_device_batch_size=32, accumulation_steps=32, warmup_ratio=0.06, weight_decay=0.01, learning_rate=5e-4, on_the_fly=False,
-    num_tpu_cores=None,
+    num_tpu_cores=None, num_proc=8,
 ):
     """
     Finetune LM
@@ -126,18 +143,7 @@ def finetune_lm(
             test_dataset = test_dataset.select(list(range(limit)))
 
 
-        """
-        If TPU => pad to max length
 
-        See https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#known-performance-caveats
-        """
-
-    if not on_the_fly:
-        print("Tokenizing")
-        train_dataset = train_dataset.map(lambda x: tokenize(tokenizer, x), batched=True, batch_size=batch_size)
-        test_dataset = test_dataset.map(lambda x: tokenize(tokenizer, x), batched=True, batch_size=batch_size)
-        train_dataset = train_dataset.remove_columns(["text"])
-        test_dataset = test_dataset.remove_columns(["text"])
 
     dataset = DatasetDict({"train": train_dataset, "test": test_dataset})
 
@@ -172,10 +178,11 @@ def finetune_lm(
         import torch_xla.distributed.xla_multiprocessing as xmp
 
 
-        if not dataset_path or (not on_the_fly):
-            print("Saving datasets...")
+        if not dataset_path:
             dataset_path = "/tmp/dataset_finetune_lm"
+            print(f"Saving datasets to {dataset_path}")
             dataset.save_to_disk(dataset_path)
+            print("Done")
 
         # print("Wrapping model...")
         # WRAPPED_MODEL = xmp.MpModelWrapper(model)
@@ -183,7 +190,7 @@ def finetune_lm(
 
         print("Spawning")
         xmp.spawn(
-            _mp_fn, args=(model_name, dataset_path, output_dir, num_steps, num_eval_batches, args),
+            _mp_fn, args=(model_name, dataset_path, output_dir, num_steps, num_eval_batches, padding, args),
             nprocs=num_tpu_cores, start_method="spawn"
         )
 
