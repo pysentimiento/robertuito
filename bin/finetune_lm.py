@@ -1,80 +1,25 @@
 import os
-import torch
 import fire
-import datasets
-from datasets import load_from_disk
-import torch
+from glob import glob
+from datasets import load_dataset, Features, Value, load_from_disk, DatasetDict
 from transformers import (
     DataCollatorForLanguageModeling, Trainer, TrainingArguments,
 )
-from torch.utils.data.dataloader import DataLoader
-from transformers import BertForMaskedLM, BertTokenizer, AutoTokenizer
+from transformers import BertForMaskedLM
 from finetune_vs_scratch.preprocessing import special_tokens
-from finetune_vs_scratch.model import load_model_and_tokenizer, load_tokenizer
+from finetune_vs_scratch.model import load_tokenizer
+import torch_xla.core.xla_model as xm
 
-def finetune_lm(
-    output_dir, train_path, test_path, num_steps, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
-    batch_size=2048, num_eval_batches=50, deepspeed=None, limit=None, eval_and_save_steps=100, per_device_batch_size=32,
-    accumulation_steps=32, warmup_ratio=0.06, weight_decay=0.01, learning_rate=5e-4, on_the_fly=False,
-):
-    """
-    Finetune LM
-    """
-
-    print("Loading datasets")
-
-    train_dataset = load_from_disk(train_path)
-    test_dataset = load_from_disk(test_path)
-
-    if limit:
-        print(f"Limiting to {limit}")
-
-        train_dataset = train_dataset.select(list(range(limit)))
-        test_dataset = test_dataset.select(list(range(limit)))
-    else:
-        tweets_needed = num_steps * batch_size
-
-        print(f"Subselecting {tweets_needed}")
-        train_dataset = train_dataset.select(list(range(tweets_needed)))
-        test_dataset = test_dataset.select(list(range(batch_size * num_eval_batches)))
+def tokenize(tokenizer, batch, padding='max_length'):
+    return tokenizer(batch['text'], padding=padding, truncation=True, return_special_tokens_mask=True)
 
 
-    print("Loading model")
-    model = BertForMaskedLM.from_pretrained(model_name, return_dict=True)
-    tokenizer = load_tokenizer(model_name, 128, model=model)
-
+def train(model, tokenizer, train_dataset, test_dataset, output_dir, num_steps, on_the_fly=False, padding='max_length', **kwargs):
+    print("Entering training function")
     data_collator = DataCollatorForLanguageModeling(
-        tokenizer=tokenizer, mlm=True, mlm_probability=0.15
+        tokenizer=tokenizer, mlm=True, mlm_probability=0.15,
     )
 
-    print("Tokenizing")
-
-    def tokenize(batch):
-        return tokenizer(batch['text'], padding=False, truncation=True, return_special_tokens_mask=True)
-
-    if on_the_fly:
-        train_dataset.set_transform(tokenize)
-        test_dataset.set_transform(tokenize)
-    else:
-        train_dataset = train_dataset.map(tokenize, batched=True, batch_size=batch_size, num_proc=24)
-        test_dataset = test_dataset.map(tokenize, batched=True, batch_size=batch_size, num_proc=24)
-        train_dataset = train_dataset.remove_columns(["text"])
-        test_dataset = test_dataset.remove_columns(["text"])
-
-    args = {
-        "eval_steps":eval_and_save_steps,
-        "save_steps":eval_and_save_steps,
-        "logging_steps": 50,
-        "per_device_train_batch_size": per_device_batch_size,
-        "per_device_eval_batch_size": per_device_batch_size,
-        "gradient_accumulation_steps": accumulation_steps,
-        "deepspeed": deepspeed,
-        "learning_rate": learning_rate,
-        "weight_decay": weight_decay,
-        "warmup_ratio": warmup_ratio,
-    }
-
-    print(args)
 
     training_args = TrainingArguments(
         output_dir=output_dir,
@@ -87,9 +32,31 @@ def finetune_lm(
         logging_dir="./logs",
         logging_strategy="steps",
 
-        **args,
+        **kwargs,
     )
 
+
+
+    if on_the_fly:
+        print("On the fly tokenization")
+
+        train_dataset.set_transform(lambda x: tokenize(tokenizer, x, padding))
+        test_dataset.set_transform(lambda x: tokenize(tokenizer, x, padding))
+        print(train_dataset[0])
+        print(len(train_dataset[1000]["input_ids"]))
+    else:
+        print("Tokenization preprocessing")
+        batch_size = 2048
+        num_proc = 8
+        with training_args.main_process_first(desc="dataset map tokenization"):
+            print("Tokenizing")
+            train_dataset = train_dataset.map(lambda x: tokenize(tokenizer, x, padding), batched=True, batch_size=batch_size, num_proc=num_proc)
+            test_dataset = test_dataset.map(lambda x: tokenize(tokenizer, x, padding), batched=True, batch_size=batch_size, num_proc=num_proc)
+            train_dataset = train_dataset.remove_columns(["text"])
+            test_dataset = test_dataset.remove_columns(["text"])
+
+    print(train_dataset[0])
+    print(len(train_dataset[0]["input_ids"]))
     print("Training!")
     trainer = Trainer(
         model=model,
@@ -105,8 +72,130 @@ def finetune_lm(
     trainer.save_model(output_dir)
     tokenizer.save_pretrained(output_dir)
 
-def _mp_fn(*args, **kwargs):
-    return fire.Fire(finetune_lm)
+def _mp_fn(index, model_name, dataset_path, output_dir, num_steps, num_eval_batches, padding, training_args):
+    print("Loading model...")
+    model = BertForMaskedLM.from_pretrained(model_name, return_dict=True)
+    tokenizer = load_tokenizer(model_name, 128, model=model)
+    print(f"Loading from {dataset_path}...")
+    dataset = load_from_disk(dataset_path)
+    train_dataset, test_dataset = dataset["train"], dataset["test"]
+
+    test_dataset = test_dataset.select(list(range(2048 * num_eval_batches)))
+    print("Done loading dataset")
+
+    return train(model, tokenizer, train_dataset, test_dataset, output_dir, num_steps, padding=padding, **training_args)
+
+def finetune_lm(
+    output_dir, num_steps, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
+    input_dir=None, dataset_path=None,
+    batch_size=2048, num_eval_batches=20, deepspeed=None, limit=None, eval_steps=200, save_steps=1000,
+    per_device_batch_size=32, accumulation_steps=32, warmup_ratio=0.06, weight_decay=0.01, learning_rate=5e-4, on_the_fly=False,
+    num_tpu_cores=None, num_proc=8,
+):
+    """
+    Finetune LM
+
+
+    """
+    if not input_dir and not dataset_path:
+        print("Must provide input_dir or dataset_path")
+
+
+    print("Loading model")
+    model = BertForMaskedLM.from_pretrained(model_name, return_dict=True)
+    tokenizer = load_tokenizer(model_name, 128, model=model)
+    padding = 'max_length' if num_tpu_cores else False
+    print(f"Padding {padding}")
+
+    print("Sanity check")
+    print(f"@usuario => {tokenizer.encode('@usuario')}")
+    text = "esta es una PRUEBA EN MAYÚSCULAS Y CON TILDES @usuario @usuario"
+    print(f"{text} ==> {tokenizer.decode(tokenizer.encode(text))}")
+
+    if input_dir:
+        print("Loading datasets")
+
+        tweet_files = sorted(
+            glob(os.path.join(input_dir, "*.txt"))
+        )
+
+        train_files = tweet_files[:10]
+        test_files = tweet_files[-1:]
+
+        print(f"Train files: {train_files}")
+        print(f"Test files: {test_files}")
+        features = Features({
+            'text': Value('string'),
+        })
+
+        train_dataset, test_dataset = load_dataset(
+            "text", data_files={"train": train_files, "test": test_files}, split=["train", "test"], features=features
+        )
+    else:
+        dataset = load_from_disk(dataset_path)
+        train_dataset, test_dataset = dataset["train"], dataset["test"]
+
+
+        if limit:
+            print(f"Limiting to {limit}")
+
+            train_dataset = train_dataset.select(list(range(limit)))
+            test_dataset = test_dataset.select(list(range(limit)))
+
+
+
+
+    dataset = DatasetDict({"train": train_dataset, "test": test_dataset})
+
+    args = {
+        "eval_steps":eval_steps,
+        "save_steps":save_steps,
+        "logging_steps": 50,
+        "per_device_train_batch_size": per_device_batch_size,
+        "per_device_eval_batch_size": per_device_batch_size,
+        "gradient_accumulation_steps": accumulation_steps,
+        "deepspeed": deepspeed,
+        "learning_rate": learning_rate,
+        "weight_decay": weight_decay,
+        "warmup_ratio": warmup_ratio,
+        "on_the_fly": on_the_fly,
+    }
+
+    print(args)
+
+    if num_tpu_cores is None:
+        """
+        Default training -- no XLA
+        """
+        train(model, tokenizer, train_dataset, test_dataset, output_dir, num_steps, **args)
+    else:
+        """
+        XLA training
+
+        1. Save the datasets
+        2. Wrap the model
+        """
+        import torch_xla.distributed.xla_multiprocessing as xmp
+
+
+        if not dataset_path:
+            dataset_path = "/tmp/dataset_finetune_lm"
+            print(f"Saving datasets to {dataset_path}")
+            dataset.save_to_disk(dataset_path)
+            print("Done")
+
+        # print("Wrapping model...")
+        # WRAPPED_MODEL = xmp.MpModelWrapper(model)
+
+
+        print("Spawning")
+        xmp.spawn(
+            _mp_fn, args=(model_name, dataset_path, output_dir, num_steps, num_eval_batches, padding, args),
+            nprocs=num_tpu_cores, start_method="spawn"
+        )
+
+# def _mp_fn(*args, **kwargs):
+#     return fire.Fire(finetune_lm)
 
 if __name__ == '__main__':
     fire.Fire(finetune_lm)
