@@ -53,9 +53,9 @@ PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
 
 tokenizer_special_tokens = [
     "<s>",
+    "<pad>",
     "</s>",
     "<unk>",
-    "<pad>",
     "<mask>",
 ]
 
