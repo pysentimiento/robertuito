@@ -7,7 +7,7 @@ from tokenizers import SentencePieceBPETokenizer, normalizers
 from transformers import PreTrainedTokenizerFast
 def train_tokenizer(
     train_path: str, output_path: str, strip_accents: bool =False,
-    lowercase: bool = False, vocab_size: int=30_000, min_frequency: int = 10, limit_alphabet:int = 400,
+    lowercase: bool = False, vocab_size: int=30_000, min_frequency: int = 10, limit_alphabet:int = 400, num_files=40,
         ):
     """
     Train tokenizer
@@ -20,7 +20,9 @@ def train_tokenizer(
     lowercase (bool, optional, defaults to True) – Whether to lowercase.
 
     """
-    tweet_files = glob.glob(os.path.join(train_path, "*.txt"))[:1]
+    tweet_files = sorted(
+        glob.glob(os.path.join(train_path, "*.txt"))
+    )[:num_files]
 
     print(f"Found {len(tweet_files)} files in {train_path}")
 
@@ -65,7 +67,14 @@ def train_tokenizer(
 
 
     transformer_tokenizer = PreTrainedTokenizerFast(
-        tokenizer_object=tokenizer
+        tokenizer_object=tokenizer,
+        bos_token="<s>",
+        eos_token="</s>",
+        sep_token="</s>",
+        cls_token="<s>",
+        unk_token="<unk>",
+        pad_token="<pad>",
+        mask_token="<mask>",
     )
 
     text = "@usuario ESTO es una prueba esdrújula PAPÁ"
