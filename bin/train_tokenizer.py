@@ -2,11 +2,12 @@ import os
 import glob
 import fire
 from finetune_vs_scratch.preprocessing import special_tokens
-from tokenizers import BertWordPieceTokenizer
-
+from finetune_vs_scratch.tokenizer import tokenizer_special_tokens
+from tokenizers import SentencePieceBPETokenizer, normalizers
+from transformers import PreTrainedTokenizerFast
 def train_tokenizer(
-    train_path: str, output_path: str, clean_text: bool = True, strip_accents: bool =False,
-    lowercase: bool = False, vocab_size: int=40_000, min_frequency: int = 2, limit_alphabet:int = 600,
+    train_path: str, output_path: str, strip_accents: bool =False,
+    lowercase: bool = False, vocab_size: int=30_000, min_frequency: int = 10, limit_alphabet:int = 400,
         ):
     """
     Train tokenizer
@@ -19,25 +20,32 @@ def train_tokenizer(
     lowercase (bool, optional, defaults to True) – Whether to lowercase.
 
     """
-    tweet_files = glob.glob(os.path.join(train_path, "*.txt"))
+    tweet_files = glob.glob(os.path.join(train_path, "*.txt"))[:1]
 
     print(f"Found {len(tweet_files)} files in {train_path}")
-    bert_special_tokens = ["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]"]
 
-    tokenizer = BertWordPieceTokenizer(
-        clean_text=clean_text,
-        handle_chinese_chars=True,
-        strip_accents=strip_accents,
-        lowercase=lowercase,
-    )
-    print(f"Clean text: {clean_text}")
-    print(f"Strip accents: {strip_accents}")
-    tokenizer.add_special_tokens(special_tokens)
+    tokenizer = SentencePieceBPETokenizer()
 
     print(tokenizer)
-    print("Added: ", special_tokens)
     print("Training...")
-    print(tokenizer.get_vocab())
+    print(f"Lowercase: {lowercase}")
+    print(f"Strip accents: {strip_accents}")
+
+    tokenizer_normalizers = [
+        normalizers.NFKC(),
+        normalizers.BertNormalizer(
+            clean_text=True,
+            handle_chinese_chars=True,
+            strip_accents=strip_accents,
+            lowercase=lowercase,
+        )
+    ]
+
+
+
+    print(tokenizer_normalizers)
+    tokenizer.normalizer = normalizers.Sequence(tokenizer_normalizers)
+    print(tokenizer.normalizer)
 
     tokenizer.train(
         tweet_files,
@@ -45,12 +53,30 @@ def train_tokenizer(
         min_frequency=min_frequency,
         show_progress=True,
 
-        special_tokens=bert_special_tokens + special_tokens,
+        special_tokens=tokenizer_special_tokens + special_tokens,
         limit_alphabet=limit_alphabet,
-        wordpieces_prefix="##",
     )
-    tokenizer.save_model(output_path)
-    print(f"Saved to {output_path}")
+    inv_vocab = {v:k for k, v in tokenizer.get_vocab().items()}
+    print(f"First tokens: {[inv_vocab[i] for i in range(20)]}")
+
+    alphabet = sorted(list({a for x in tokenizer.get_vocab() for a in x}))
+    print("Alphabet = ", " ".join(alphabet))
+
+
+
+    transformer_tokenizer = PreTrainedTokenizerFast(
+        tokenizer_object=tokenizer
+    )
+
+    text = "@usuario ESTO es una prueba esdrújula PAPÁ"
+
+    print(f"Without tokenizing: {text}")
+    decoded = transformer_tokenizer.decode(
+       transformer_tokenizer(text)["input_ids"]
+    )
+    print(f"Processed: {decoded}")
+
+    transformer_tokenizer.save_pretrained(output_path)
 
 if __name__ == '__main__':
     fire.Fire(train_tokenizer)
