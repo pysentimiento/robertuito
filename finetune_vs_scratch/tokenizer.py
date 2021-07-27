@@ -25,6 +25,7 @@ from typing import List, Optional, Tuple
 
 import regex
 from .preprocessing import preprocess
+from tokenizers import SentencePieceBPETokenizer
 from transformers.tokenization_utils import PreTrainedTokenizer
 from transformers.utils import logging
 
@@ -49,21 +50,6 @@ PRETRAINED_POSITIONAL_EMBEDDINGS_SIZES = {
     "vinai/bertweet-base": 128,
 }
 
-
-def get_pairs(word):
-    """
-    Return set of symbol pairs in a word.
-
-    Word is represented as tuple of symbols (symbols being variable-length strings).
-    """
-    pairs = set()
-    prev_char = word[0]
-    for char in word[1:]:
-        pairs.add((prev_char, char))
-        prev_char = char
-
-    pairs = set(pairs)
-    return pairs
 
 tokenizer_special_tokens = [
     "<s>",
@@ -155,7 +141,11 @@ class MyTokenizer(PreTrainedTokenizer):
         self.vocab_file = vocab_file
         self.merges_file = merges_file
 
+
         self.lower = lower
+        self.normalization = normalization
+
+        self._tokenizer = SentencePieceBPETokenizer(vocab_file, merges_file)
         with open(vocab_file) as f:
             self.encoder = json.load(f)
 
@@ -166,10 +156,6 @@ class MyTokenizer(PreTrainedTokenizer):
         merges = [tuple(merge.split()[:-1]) for merge in merges]
         self.bpe_ranks = dict(zip(merges, range(len(merges))))
         self.cache = {}
-
-        self.normalization = normalization
-
-        self.special_puncts = {"’": "'", "…": "..."}
 
     def build_inputs_with_special_tokens(
         self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None
@@ -228,29 +214,29 @@ class MyTokenizer(PreTrainedTokenizer):
             return [1] + ([0] * len(token_ids_0)) + [1]
         return [1] + ([0] * len(token_ids_0)) + [1, 1] + ([0] * len(token_ids_1)) + [1]
 
-    def create_token_type_ids_from_sequences(
-        self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None
-    ) -> List[int]:
-        """
-        Create a mask from the two sequences passed to be used in a sequence-pair classification task. BERTweet does
-        not make use of token type ids, therefore a list of zeros is returned.
+    # def create_token_type_ids_from_sequences(
+    #     self, token_ids_0: List[int], token_ids_1: Optional[List[int]] = None
+    # ) -> List[int]:
+    #     """
+    #     Create a mask from the two sequences passed to be used in a sequence-pair classification task. BERTweet does
+    #     not make use of token type ids, therefore a list of zeros is returned.
 
-        Args:
-            token_ids_0 (:obj:`List[int]`):
-                List of IDs.
-            token_ids_1 (:obj:`List[int]`, `optional`):
-                Optional second list of IDs for sequence pairs.
+    #     Args:
+    #         token_ids_0 (:obj:`List[int]`):
+    #             List of IDs.
+    #         token_ids_1 (:obj:`List[int]`, `optional`):
+    #             Optional second list of IDs for sequence pairs.
 
-        Returns:
-            :obj:`List[int]`: List of zeros.
-        """
+    #     Returns:
+    #         :obj:`List[int]`: List of zeros.
+    #     """
 
-        sep = [self.sep_token_id]
-        cls = [self.cls_token_id]
+    #     sep = [self.sep_token_id]
+    #     cls = [self.cls_token_id]
 
-        if token_ids_1 is None:
-            return len(cls + token_ids_0 + sep) * [0]
-        return len(cls + token_ids_0 + sep + sep + token_ids_1 + sep) * [0]
+    #     if token_ids_1 is None:
+    #         return len(cls + token_ids_0 + sep) * [0]
+    #     return len(cls + token_ids_0 + sep + sep + token_ids_1 + sep) * [0]
 
     @property
     def vocab_size(self):
@@ -259,60 +245,17 @@ class MyTokenizer(PreTrainedTokenizer):
     def get_vocab(self):
         return dict(self.encoder, **self.added_tokens_encoder)
 
-    def bpe(self, token):
-        if token in self.cache:
-            return self.cache[token]
-        word = tuple(token)
-        word = tuple(list(word[:-1]) + [word[-1] + "</w>"])
-        pairs = get_pairs(word)
-
-        if not pairs:
-            return token
-
-        while True:
-            bigram = min(pairs, key=lambda pair: self.bpe_ranks.get(pair, float("inf")))
-            if bigram not in self.bpe_ranks:
-                break
-            first, second = bigram
-            new_word = []
-            i = 0
-            while i < len(word):
-                try:
-                    j = word.index(first, i)
-                except ValueError:
-                    new_word.extend(word[i:])
-                    break
-                else:
-                    new_word.extend(word[i:j])
-                    i = j
-
-                if word[i] == first and i < len(word) - 1 and word[i + 1] == second:
-                    new_word.append(first + second)
-                    i += 2
-                else:
-                    new_word.append(word[i])
-                    i += 1
-            new_word = tuple(new_word)
-            word = new_word
-            if len(word) == 1:
-                break
-            else:
-                pairs = get_pairs(word)
-        word = "@@ ".join(word)
-        word = word[:-4]
-        self.cache[token] = word
-        return word
-
     def _tokenize(self, text):
         """Tokenize a string."""
+
+        if self.lower:
+            text = text.lower()
+
         if self.normalization:  # Perform Tweet normalization before performing BPE
             text = self.normalize_tweet(text)
 
-        split_tokens = []
-        words = re.findall(r"\S+\n?", text)
-        for token in words:
-            split_tokens.extend([t for t in self.bpe(token).split(" ")])
-        return split_tokens
+
+        return self._tokenizer.encode(text).tokens
 
     def normalize_tweet(self, tweet):
         """

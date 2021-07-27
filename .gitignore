@@ -137,3 +137,5 @@ models/*
 workspace.code-workspace
 logs/*
 runs/*
+notebooks/**/merges.txt
+notebooks/**/*.json
