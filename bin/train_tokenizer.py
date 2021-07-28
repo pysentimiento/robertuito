@@ -5,6 +5,8 @@ from finetune_vs_scratch.preprocessing import special_tokens
 from finetune_vs_scratch.tokenizer import tokenizer_special_tokens
 from tokenizers import SentencePieceBPETokenizer, normalizers
 from transformers import PreTrainedTokenizerFast
+from tokenizers.processors import RobertaProcessing
+
 def train_tokenizer(
     train_path: str, output_path: str, strip_accents: bool =False,
     lowercase: bool = False, vocab_size: int=30_000, min_frequency: int = 10, limit_alphabet:int = 400, num_files=40,
@@ -27,6 +29,7 @@ def train_tokenizer(
     print(f"Found {len(tweet_files)} files in {train_path}")
 
     tokenizer = SentencePieceBPETokenizer()
+    tokenizer.add_special_tokens(tokenizer_special_tokens)
 
     print(tokenizer)
     print("Training...")
@@ -44,6 +47,10 @@ def train_tokenizer(
     ]
 
 
+    tokenizer.post_processor = RobertaProcessing(
+        cls=("<s>", tokenizer.token_to_id("<s>")),
+        sep=("</s>", tokenizer.token_to_id("</s>")),
+    )
 
     print(tokenizer_normalizers)
     tokenizer.normalizer = normalizers.Sequence(tokenizer_normalizers)
@@ -84,6 +91,16 @@ def train_tokenizer(
        transformer_tokenizer(text)["input_ids"]
     )
     print(f"Processed: {decoded}")
+
+
+    text = ["@usuario dos oraciones", "segunda ORACIÓN"]
+
+    print(f"Without tokenizing: {text}")
+    decoded = transformer_tokenizer.decode(
+       transformer_tokenizer(*text)["input_ids"]
+    )
+    print(f"Processed: {decoded}")
+
 
     transformer_tokenizer.save_pretrained(output_path)
 
