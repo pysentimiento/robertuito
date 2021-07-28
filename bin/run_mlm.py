@@ -67,6 +67,7 @@ def run_mlm(
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         tokenizer.model_max_length = 128
         model = AutoModelForMaskedLM.from_config(config)
+        model.resize_token_embeddings(len(tokenizer))
         print(model)
 
     print(f"Padding {padding}")

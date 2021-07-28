@@ -53,4 +53,18 @@ python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
     --num_proc $num_proc  --on_the_fly
 ```
 
+Con deepspeed
 
+```
+model="models/twerto-base-uncased"
+num_proc=24 #Check your CPU cores
+num_steps=20
+batch_size=32
+acc=16
+output_dir="models/twerto-base-uncased-${num_steps}"
+deepspeed --num_gpus 2 bin/run_mlm.py\
+    --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
+    --num_steps $num_steps  --per_device_batch_size $batch_size --accumulation_steps $acc\
+    --eval_steps 500 --save_steps 2000\
+    --num_proc $num_proc --on_the_fly
+```
