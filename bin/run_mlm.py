@@ -24,16 +24,26 @@ def tokenize(tokenizer, batch, padding='max_length'):
     return tokenizer(batch['text'], padding=padding, truncation=True, return_special_tokens_mask=True)
 
 
-def finetune_lm(
-    output_dir, num_steps, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
+def run_mlm(
+    output_dir:str, num_steps:int, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
     input_dir=None, dataset_path=None, num_files=6, seed=2021,
     batch_size=2048, num_eval_batches=20, limit=None, eval_steps=200, save_steps=1000, padding='max_length',
     per_device_batch_size=32, accumulation_steps=32, warmup_ratio=0.06, weight_decay=0.01, learning_rate=5e-4, on_the_fly=False,
-    num_proc=8,
+    num_proc=8, finetune=False
 ):
     """
-    Finetune LM
+    Run MLM
 
+    Arguments:
+
+    output_dir: str
+        Where to save
+
+    num_steps: int
+        Number of steps to perform
+
+    input_dir: str (default None)
+        Where to look for tweet files
 
     """
     print(limit)
@@ -42,8 +52,19 @@ def finetune_lm(
 
     random.seed(seed)
     print("Loading model")
-    model = AutoModelForMaskedLM.from_pretrained(model_name, return_dict=True)
-    tokenizer = load_tokenizer(model_name, 128, model=model)
+    if finetune:
+        """
+        If finetune => Load model and use special `load_tokenizer` function
+        """
+        print("Finetuning pretrained model")
+        model = AutoModelForMaskedLM.from_pretrained(model_name, return_dict=True)
+        tokenizer = load_tokenizer(model_name, 128, model=model)
+    else:
+        """
+        Pretraining from scratch
+        """
+        print(f"Pretraining from scratch -- {model_name} ")
+
     print(f"Padding {padding}")
 
     print("Sanity check")
@@ -124,7 +145,6 @@ def finetune_lm(
         print(len(train_dataset))
         print(len(test_dataset))
         batch_size = 2048
-        num_proc = 8
         with training_args.main_process_first(desc="dataset map tokenization"):
             print("Tokenizing")
             train_dataset = train_dataset.map(lambda x: tokenize(tokenizer, x, padding), batched=True, batch_size=batch_size, num_proc=num_proc)
@@ -161,7 +181,7 @@ def finetune_lm(
 
 
 def _mp_fn(*args, **kwargs):
-    return fire.Fire(finetune_lm)
+    return fire.Fire(run_mlm)
 
 if __name__ == '__main__':
-    fire.Fire(finetune_lm)
+    fire.Fire(run_mlm)
