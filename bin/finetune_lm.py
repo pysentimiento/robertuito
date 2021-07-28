@@ -16,11 +16,9 @@ from datasets import load_dataset, load_from_disk
 from transformers import (
     DataCollatorForLanguageModeling, Trainer, TrainingArguments,
 )
-from transformers import BertForMaskedLM
+from transformers import AutoModelForMaskedLM
 from finetune_vs_scratch.preprocessing import special_tokens
 from finetune_vs_scratch.model import load_tokenizer
-import torch_xla.core.xla_model as xm
-import torch_xla.distributed.xla_multiprocessing as xmp
 
 def tokenize(tokenizer, batch, padding='max_length'):
     return tokenizer(batch['text'], padding=padding, truncation=True, return_special_tokens_mask=True)
@@ -44,7 +42,7 @@ def finetune_lm(
 
     random.seed(seed)
     print("Loading model")
-    model = BertForMaskedLM.from_pretrained(model_name, return_dict=True)
+    model = AutoModelForMaskedLM.from_pretrained(model_name, return_dict=True)
     tokenizer = load_tokenizer(model_name, 128, model=model)
     print(f"Padding {padding}")
 
