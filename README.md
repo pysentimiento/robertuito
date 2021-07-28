@@ -37,3 +37,20 @@ num_proc=32
 num_steps=25000; python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py --input_dir data/filtered_tweets/ --output_dir models/beto-uncased-${num_steps}/ --num_steps $num_steps --model_name 'dccuchile/bert-base-spanish-wwm-uncased' --per_device_batch_size 128 --accumulation_steps 2 --num_proc $num_proc  --on_the_fly --finetune
 ```
 
+### Train from scratch
+
+On v3 TPU
+
+```
+model="models/twerto-base-uncased"
+num_proc=16 #Check your CPU cores
+num_steps=3000
+output_dir="models/twerto-base-uncased-${num_steps}"
+python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
+    --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
+    --num_steps $num_steps  --per_device_batch_size 128 --accumulation_steps 2\
+    --eval_steps 500 --save_steps 2000\
+    --num_proc $num_proc  --on_the_fly
+```
+
+

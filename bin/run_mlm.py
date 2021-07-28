@@ -15,8 +15,8 @@ from glob import glob
 from datasets import load_dataset, load_from_disk
 from transformers import (
     DataCollatorForLanguageModeling, Trainer, TrainingArguments,
+    AutoModelForMaskedLM, AutoTokenizer, AutoConfig,
 )
-from transformers import AutoModelForMaskedLM
 from finetune_vs_scratch.preprocessing import special_tokens
 from finetune_vs_scratch.model import load_tokenizer
 
@@ -28,8 +28,7 @@ def run_mlm(
     output_dir:str, num_steps:int, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
     input_dir=None, dataset_path=None, num_files=6, seed=2021,
     batch_size=2048, num_eval_batches=20, limit=None, eval_steps=200, save_steps=1000, padding='max_length',
-    per_device_batch_size=32, accumulation_steps=32, warmup_ratio=0.06, weight_decay=0.01, learning_rate=5e-4, on_the_fly=False,
-    num_proc=8, finetune=False
+    per_device_batch_size=32, accumulation_steps=32, warmup_ratio=0.06, weight_decay=0.01, learning_rate=5e-4, on_the_fly=False, resume_from_checkpoint=None, num_proc=8, finetune=False
 ):
     """
     Run MLM
@@ -64,6 +63,11 @@ def run_mlm(
         Pretraining from scratch
         """
         print(f"Pretraining from scratch -- {model_name} ")
+        config = AutoConfig.from_pretrained(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        tokenizer.model_max_length = 128
+        model = AutoModelForMaskedLM.from_config(config)
+        print(model)
 
     print(f"Padding {padding}")
 
@@ -75,10 +79,10 @@ def run_mlm(
     if input_dir:
         print("Loading datasets")
 
-        tweet_files = random.sample(
+        tweet_files = sorted(random.sample(
             glob(os.path.join(input_dir, "*.txt")),
             num_files
-        )
+        ))
 
         print(f"Selecting {tweet_files}")
 
@@ -173,7 +177,7 @@ def run_mlm(
         eval_dataset=test_dataset,
     )
 
-    trainer.train(resume_from_checkpoint=None)
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     print(f"Saving model to {output_dir}")
     trainer.save_model(output_dir)
