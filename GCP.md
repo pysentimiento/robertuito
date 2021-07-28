@@ -27,10 +27,23 @@ gcloud compute tpus create $tpu_name \
     --preemptible
 ```
 
+### v3
+
+```
+gcloud config set compute/zone europe-west4-a
+
+tpu_name="gaia-tpu"
+echo "Creating ${tpu_name}"
+gcloud compute tpus create $tpu_name \
+    --accelerator-type=v3-8 \
+    --version=pytorch-1.9
+```
+
+
 3. Configurar
 
 ```
-export TPU_IP_ADDRESS=XXXXXXX
+export TPU_IP_ADDRESS=10.40.109.186
 export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 ```
 
@@ -50,9 +63,4 @@ pip install .
 gsutil cp -r gs://pysentimiento/filtered_tweets data/
 ```
 
-6. Correr finetuning
-
-```
-num_steps=12500; python bin/finetune_lm.py --dataset_path  data/arrow/dataset/ --output_dir models/beto-uncased-${num_steps}/ --num_steps $num_steps --model_name 'dccuchile/bert-base-spanish-wwm-uncased' --num_tpu_cores 8 --per_device_
-batch_size 64 --accumulation_steps 4  --num_proc 8 --on_the_fly
-```
+## Correr finetuning

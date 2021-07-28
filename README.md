@@ -23,7 +23,17 @@ python bin/generate_dataset.py data/filtered_tweets/ data/arrow/dataset/
 ```
 2. Train
 
+### Finetuning
+
 On v2 tpu => this without generating dataset
 ```
-num_steps=15000; python bin/xla_spawn.py --num_cores 8 bin/finetune_lm.py --input_dir data/filtered_tweets/ --output_dir models/beto-uncased-${num_steps}/ --num_steps $num_steps --model_name 'dccuchile/bert-base-spanish-wwm-uncased' --per_device_batch_size 64 --accumulation_steps 4  --num_proc 8  --on_the_fly
+num_steps=15000; python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py --input_dir data/filtered_tweets/ --output_dir models/beto-uncased-${num_steps}/ --num_steps $num_steps --model_name 'dccuchile/bert-base-spanish-wwm-uncased' --per_device_batch_size 64 --accumulation_steps 4  --num_proc 8  --on_the_fly --finetune
 ```
+
+On v3 tpu =>
+
+```
+num_proc=32
+num_steps=25000; python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py --input_dir data/filtered_tweets/ --output_dir models/beto-uncased-${num_steps}/ --num_steps $num_steps --model_name 'dccuchile/bert-base-spanish-wwm-uncased' --per_device_batch_size 128 --accumulation_steps 2 --num_proc $num_proc  --on_the_fly --finetune
+```
+
