@@ -3,7 +3,7 @@ import glob
 import fire
 from finetune_vs_scratch.preprocessing import special_tokens
 from finetune_vs_scratch.tokenizer import tokenizer_special_tokens
-from tokenizers import SentencePieceBPETokenizer, normalizers
+from tokenizers import SentencePieceBPETokenizer, normalizers, Regex
 from transformers import PreTrainedTokenizerFast
 from tokenizers.processors import RobertaProcessing
 
@@ -36,6 +36,7 @@ def train_tokenizer(
     print(f"Lowercase: {lowercase}")
     print(f"Strip accents: {strip_accents}")
 
+
     tokenizer_normalizers = [
         normalizers.NFKC(),
         normalizers.BertNormalizer(
@@ -43,7 +44,12 @@ def train_tokenizer(
             handle_chinese_chars=True,
             strip_accents=strip_accents,
             lowercase=lowercase,
-        )
+        ),
+        normalizers.Replace(Regex("(\W)?@usuario(\W)"), " @usuario "),
+        normalizers.Replace("hashtag", " hashtag "),
+        # Error de preprocesamiento
+        normalizers.Replace(Regex("(\W)url(\W)"), " url "),
+        normalizers.Replace("http://url", " url "),
     ]
 
 
@@ -55,22 +61,28 @@ def train_tokenizer(
     print(tokenizer_normalizers)
     tokenizer.normalizer = normalizers.Sequence(tokenizer_normalizers)
     print(tokenizer.normalizer)
-
     tokenizer.train(
         tweet_files,
         vocab_size=vocab_size,
         min_frequency=min_frequency,
         show_progress=True,
 
-        special_tokens=tokenizer_special_tokens + special_tokens,
+        special_tokens=tokenizer_special_tokens,
         limit_alphabet=limit_alphabet,
     )
-    inv_vocab = {v:k for k, v in tokenizer.get_vocab().items()}
+
+    vocab = tokenizer.get_vocab()
+
+    inv_vocab = {v:k for k, v in vocab.items()}
     print(f"First tokens: {[inv_vocab[i] for i in range(20)]}")
 
-    alphabet = sorted(list({a for x in tokenizer.get_vocab() for a in x}))
+    alphabet = sorted(list({a for x in vocab for a in x}))
     print("Alphabet = ", " ".join(alphabet))
 
+
+    for tok in vocab:
+        if any(t in tok for t in special_tokens):
+            print(f"{tok:<12} --> {vocab[tok]}")
 
 
     transformer_tokenizer = PreTrainedTokenizerFast(
