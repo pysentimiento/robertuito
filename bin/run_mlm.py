@@ -27,8 +27,12 @@ def tokenize(tokenizer, batch, padding='max_length'):
 def run_mlm(
     output_dir:str, num_steps:int, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
     input_dir=None, dataset_path=None, num_files=6, seed=2021,
-    batch_size=2048, num_eval_batches=20, limit=None, eval_steps=200, save_steps=1000, padding='max_length',
-    per_device_batch_size=32, accumulation_steps=32, warmup_ratio=0.06, weight_decay=0.01, learning_rate=5e-4, on_the_fly=False, resume_from_checkpoint=None, num_proc=8, finetune=False
+    batch_size=2048, num_eval_batches=20, limit=None, eval_steps=200, save_steps=1000,
+    padding='max_length', on_the_fly=False, num_proc=8,
+    resume_from_checkpoint=None, finetune=False,
+    per_device_batch_size=32, accumulation_steps=32,
+    weight_decay=0.01, warmup_ratio=0.06, learning_rate=5e-4,
+    adam_beta1=0.9, adam_beta2=0.98, max_grad_norm=0,
 ):
     """
     Run MLM
@@ -117,6 +121,10 @@ def run_mlm(
         "learning_rate": learning_rate,
         "weight_decay": weight_decay,
         "warmup_ratio": warmup_ratio,
+        "adam_beta1": adam_beta1,
+        "adam_beta2": adam_beta2,
+        "max_grad_norm": max_grad_norm,
+        "adam_epsilon": 1e-6,
     }
 
     print(args)
@@ -138,7 +146,7 @@ def run_mlm(
         **args,
     )
 
-
+    print(training_args)
 
     if on_the_fly:
         with training_args.main_process_first(desc="dataset map tokenization"):
@@ -149,7 +157,6 @@ def run_mlm(
         print("Tokenization preprocessing")
         print(len(train_dataset))
         print(len(test_dataset))
-        batch_size = 2048
         with training_args.main_process_first(desc="dataset map tokenization"):
             print("Tokenizing")
             train_dataset = train_dataset.map(lambda x: tokenize(tokenizer, x, padding), batched=True, batch_size=batch_size, num_proc=num_proc)

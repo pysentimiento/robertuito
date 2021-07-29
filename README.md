@@ -58,9 +58,9 @@ Con deepspeed
 ```
 model="models/twerto-base-uncased"
 num_proc=24 #Check your CPU cores
-num_steps=20
+num_steps=10
 batch_size=32
-acc=16
+acc=64
 output_dir="models/twerto-base-uncased-${num_steps}"
 deepspeed --num_gpus 2 bin/run_mlm.py\
     --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
