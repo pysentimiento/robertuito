@@ -62,6 +62,7 @@ def run_experiment(model, tokenizer, train_dataset, dev_dataset, test_dataset, i
         gradient_accumulation_steps=accumulation_steps,
         warmup_ratio=0.1,
         evaluation_strategy="epoch",
+        save_strategy="epoch",
         do_eval=False,
         weight_decay=0.01,
         logging_dir='./logs',
