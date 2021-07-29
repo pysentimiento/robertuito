@@ -56,6 +56,10 @@ python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
 ### Academic budget
 
 ```
+```
+export TPU_IP_ADDRESS=XXXXX
+export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
+
 model="models/twerto-base-uncased"
 num_proc=16 #Check your CPU cores
 num_steps=30000
@@ -68,7 +72,7 @@ python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
     --num_steps $num_steps  --per_device_batch_size $pdbs --accumulation_steps $acc\
     --learning_rate $lr\
     --eval_steps 500 --save_steps 2000\
-    --num_proc $num_proc --on_the_fly
+    --num_proc $num_proc --on_the_fly --resume_from_checkpoint
 ```
 
 

@@ -32,7 +32,7 @@ def run_mlm(
     resume_from_checkpoint=None, finetune=False,
     per_device_batch_size=32, accumulation_steps=32,
     weight_decay=0.01, warmup_ratio=0.06, learning_rate=5e-4,
-    adam_beta1=0.9, adam_beta2=0.98, max_grad_norm=0,
+    adam_beta1=0.9, adam_beta2=0.98, max_grad_norm=0, ignore_data_skip=False,
 ):
     """
     Run MLM
@@ -124,6 +124,7 @@ def run_mlm(
         "adam_beta1": adam_beta1,
         "adam_beta2": adam_beta2,
         "max_grad_norm": max_grad_norm,
+        "ignore_data_skip": ignore_data_skip or on_the_fly,
         "adam_epsilon": 1e-6,
     }
 
