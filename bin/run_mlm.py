@@ -19,9 +19,38 @@ from transformers import (
 )
 from finetune_vs_scratch.preprocessing import special_tokens
 from finetune_vs_scratch.model import load_tokenizer
+from torch.utils.data import IterableDataset
 
 def tokenize(tokenizer, batch, padding='max_length'):
     return tokenizer(batch['text'], padding=padding, truncation=True, return_special_tokens_mask=True)
+
+class BatchProcessedDataset(IterableDataset):
+    def __init__(self, files, tokenizer, batch_size=1024, limit=-1):
+        self.files = files
+        self.batch_size = batch_size
+        self.tokenizer = tokenizer
+        self.limit = limit
+
+    def __iter__(self):
+        num_iter = 0
+        for file_path in self.files:
+            with open(file_path) as f:
+
+                next_batch = [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
+
+                while next_batch:
+                    tokenized_batch = self.tokenizer(next_batch, padding='max_length', truncation=True, return_special_tokens_mask=True)
+                    for encoding in tokenized_batch.encodings:
+                        if num_iter == self.limit:
+                            return
+                        yield {
+                            "input_ids": encoding.ids,
+                            "token_type_ids": encoding.type_ids,
+                            "attention_mask": encoding.attention_mask,
+                            "special_tokens_mask": encoding.special_tokens_mask
+                        }
+                        num_iter += 1
+                    next_batch = [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
 
 
 def run_mlm(
@@ -93,23 +122,27 @@ def run_mlm(
 
         train_files, test_files = tweet_files[:-1], tweet_files[-1:]
 
-        dataset = load_dataset("text", data_files={"train": train_files, "test": test_files})
+        train_dataset = BatchProcessedDataset(
+            train_files, tokenizer, 1024)
+        test_dataset = BatchProcessedDataset(
+            test_files, tokenizer, 1024, limit=2048 * num_eval_batches
+        )
 
     else:
         print(f"Loading dataset from {dataset_path}")
         dataset = load_from_disk(dataset_path)
-
-    train_dataset, test_dataset = dataset["train"], dataset["test"]
-
+        train_dataset, test_dataset = dataset["train"], dataset["test"]
 
 
-    if limit:
-        print(f"Limiting to {limit}")
 
-        train_dataset = train_dataset.select(list(range(limit)))
-        test_dataset = test_dataset.select(list(range(limit)))
-    else:
-        test_dataset = test_dataset.select(list(range(2048 * num_eval_batches)))
+
+    # if limit:
+    #     print(f"Limiting to {limit}")
+
+    #     train_dataset = train_dataset.select(list(range(limit)))
+    #     test_dataset = test_dataset.select(list(range(limit)))
+    # else:
+    #     test_dataset = test_dataset.select(list(range(2048 * num_eval_batches)))
 
     args = {
         "eval_steps":eval_steps,
@@ -149,29 +182,28 @@ def run_mlm(
 
     print(training_args)
 
-    if on_the_fly:
-        with training_args.main_process_first(desc="dataset map tokenization"):
-            print("On the fly tokenization")
-            train_dataset.set_transform(lambda x: tokenize(tokenizer, x, padding))
-            test_dataset.set_transform(lambda x: tokenize(tokenizer, x, padding))
-    else:
-        print("Tokenization preprocessing")
-        print(len(train_dataset))
-        print(len(test_dataset))
-        with training_args.main_process_first(desc="dataset map tokenization"):
-            print("Tokenizing")
-            train_dataset = train_dataset.map(lambda x: tokenize(tokenizer, x, padding), batched=True, batch_size=batch_size, num_proc=num_proc)
-            test_dataset = test_dataset.map(lambda x: tokenize(tokenizer, x, padding), batched=True, batch_size=batch_size, num_proc=num_proc)
-            train_dataset = train_dataset.remove_columns(["text"])
-            test_dataset = test_dataset.remove_columns(["text"])
+    # if on_the_fly:
+    #     with training_args.main_process_first(desc="dataset map tokenization"):
+    #         print("On the fly tokenization")
+    #         train_dataset.set_transform(lambda x: tokenize(tokenizer, x, padding))
+    #         test_dataset.set_transform(lambda x: tokenize(tokenizer, x, padding))
+    # else:
+    #     print("Tokenization preprocessing")
+    #     print(len(train_dataset))
+    #     print(len(test_dataset))
+    #     with training_args.main_process_first(desc="dataset map tokenization"):
+    #         print("Tokenizing")
+    #         train_dataset = train_dataset.map(lambda x: tokenize(tokenizer, x, padding), batched=True, batch_size=batch_size, num_proc=num_proc)
+    #         test_dataset = test_dataset.map(lambda x: tokenize(tokenizer, x, padding), batched=True, batch_size=batch_size, num_proc=num_proc)
+    #         train_dataset = train_dataset.remove_columns(["text"])
+    #         test_dataset = test_dataset.remove_columns(["text"])
 
 
     # print(train_dataset[0])
     with training_args.main_process_first(desc="Checking lengths"):
         print("Checking lengths")
-        print(train_dataset[0])
-        train_lengths = {len(ex["input_ids"]) for ex in train_dataset.select(range(20_000))}
-        test_lengths = {len(ex["input_ids"]) for ex in test_dataset.select(range(20_000))}
+        train_lengths = {len(ex["input_ids"]) for ex, _ in zip(train_dataset, range(20_000))}
+        test_lengths = {len(ex["input_ids"]) for ex, _ in zip(test_dataset, range(20_000))}
         print(train_lengths)
         print(test_lengths)
         assert len(train_lengths) == 1
