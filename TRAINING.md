@@ -3,12 +3,24 @@
 
 ## Setup
 
-###
+### Finetuning
 
 
 On v2 tpu => this without generating dataset
 ```
-num_steps=15000; python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py --input_dir data/filtered_tweets/ --output_dir models/beto-uncased-${num_steps}/ --num_steps $num_steps --model_name 'dccuchile/bert-base-spanish-wwm-uncased' --per_device_batch_size 64 --accumulation_steps 4  --num_proc 8  --on_the_fly --finetune
+
+export TPU_IP_ADDRESS=10.97.22.154
+export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
+pdbs=64
+acc=4
+lr=0.0006
+num_proc=16
+num_steps=15000
+python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
+    --input_dir data/filtered_tweets/ --output_dir models/beto-uncased-${num_steps}/ --num_steps $num_steps\
+    --model_name 'dccuchile/bert-base-spanish-wwm-uncased'\
+    --per_device_batch_size $pdbs --accumulation_steps 4\
+    --num_proc $num_proc --finetune
 ```
 
 On v3 tpu =>

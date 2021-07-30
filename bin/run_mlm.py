@@ -25,7 +25,7 @@ def tokenize(tokenizer, batch, padding='max_length'):
     return tokenizer(batch['text'], padding=padding, truncation=True, return_special_tokens_mask=True)
 
 class BatchProcessedDataset(IterableDataset):
-    def __init__(self, files, tokenizer, batch_size=1024, limit=-1):
+    def __init__(self, files, tokenizer, batch_size=4096, limit=-1):
         self.files = files
         self.batch_size = batch_size
         self.tokenizer = tokenizer
@@ -57,7 +57,7 @@ def run_mlm(
     output_dir:str, num_steps:int, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
     input_dir=None, dataset_path=None, num_files=6, seed=2021,
     batch_size=2048, num_eval_batches=20, limit=None, eval_steps=200, save_steps=1000,
-    padding='max_length', on_the_fly=False, num_proc=8,
+    padding='max_length', on_the_fly=False, num_proc=8, tok_batch_size=1024*16,
     resume_from_checkpoint=None, finetune=False,
     per_device_batch_size=32, accumulation_steps=32,
     weight_decay=0.01, warmup_ratio=0.06, learning_rate=5e-4,
@@ -123,9 +123,9 @@ def run_mlm(
         train_files, test_files = tweet_files[:-1], tweet_files[-1:]
 
         train_dataset = BatchProcessedDataset(
-            train_files, tokenizer, 1024)
+            train_files, tokenizer, tok_batch_size)
         test_dataset = BatchProcessedDataset(
-            test_files, tokenizer, 1024, limit=2048 * num_eval_batches
+            test_files, tokenizer, tok_batch_size, limit=2048 * num_eval_batches
         )
 
     else:
@@ -161,7 +161,6 @@ def run_mlm(
         "adam_epsilon": 1e-6,
     }
 
-    print(args)
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer, mlm=True, mlm_probability=0.15,
     )
@@ -204,12 +203,9 @@ def run_mlm(
         print("Checking lengths")
         train_lengths = {len(ex["input_ids"]) for ex, _ in zip(train_dataset, range(20_000))}
         test_lengths = {len(ex["input_ids"]) for ex, _ in zip(test_dataset, range(20_000))}
-        print(train_lengths)
-        print(test_lengths)
         assert len(train_lengths) == 1
         assert len(test_lengths) == 1
 
-    print("Training!")
     trainer = Trainer(
         model=model,
         args=training_args,
