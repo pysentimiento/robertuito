@@ -1,29 +1,10 @@
 # finetune_vs_scratch
 
-0. Install requirements
 
-```
-poetry install
-```
+## Setup
 
+###
 
-### Smoke test
-
-Test the benchmark running
-
-```
-./smoke_test.sh
-```
-
-### TPU Training
-
-1. Generate arrow dataset
-```
-python bin/generate_dataset.py data/filtered_tweets/ data/arrow/dataset/
-```
-2. Train
-
-### Finetuning
 
 On v2 tpu => this without generating dataset
 ```
@@ -54,33 +35,45 @@ python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
 ```
 
 ### Academic budget
-
-```
-```
-export TPU_IP_ADDRESS=XXXXX
+```bash
+export TPU_IP_ADDRESS=10.110.227.66
 export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 
 model="models/twerto-base-uncased"
 num_proc=16 #Check your CPU cores
-num_steps=100000
+num_steps=500000
 pdbs=128
-acc=8
+acc=4
 lr=0.0006
 output_dir="models/twerto-base-uncased-${num_steps}"
 python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
     --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
     --num_steps $num_steps  --per_device_batch_size $pdbs --accumulation_steps $acc\
-    --learning_rate $lr\
+    --learning_rate $lr --on_the_fly\
     --eval_steps 500 --save_steps 2000\
-    --num_proc $num_proc --on_the_fly\
-    --on_the_fly #--resume_from_checkpoint
+    --num_proc $num_proc
+    #--resume_from_checkpoint
 ```
 
+
+## run_mlm_hf.py
+
+```bash
+python bin/xla_spawn.py --num_cores 8 bin/run_mlm_hf.py\
+    --adam_beta1 0.9 --adam_beta2 0.98 --adam_epsilon 0.000001\
+    --eval_steps 1000 --save_steps 3000 --logging_steps 50\
+    --per_device_batch_size
+    --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
+    --num_steps $num_steps  --per_device_batch_size $pdbs --accumulation_steps $acc\
+    --learning_rate $lr --on_the_fly\
+    --eval_steps 500 --save_steps 2000\
+    --num_proc $num_proc
+```
 
 ### GPU
 Con deepspeed
 
-```
+```bash
 model="models/twerto-base-uncased"
 num_proc=24 #Check your CPU cores
 num_steps=10
@@ -92,4 +85,5 @@ deepspeed --num_gpus 2 bin/run_mlm.py\
     --num_steps $num_steps  --per_device_batch_size $batch_size --accumulation_steps $acc\
     --eval_steps 500 --save_steps 2000\
     --num_proc $num_proc --on_the_fly
+```
 ```
