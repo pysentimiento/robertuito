@@ -17,7 +17,6 @@ from transformers import (
     DataCollatorForLanguageModeling, Trainer, TrainingArguments,
     AutoModelForMaskedLM, AutoTokenizer, AutoConfig,
 )
-from finetune_vs_scratch.preprocessing import special_tokens
 from finetune_vs_scratch.model import load_tokenizer
 from torch.utils.data import IterableDataset
 
@@ -25,7 +24,7 @@ def tokenize(tokenizer, batch, padding='max_length'):
     return tokenizer(batch['text'], padding=padding, truncation=True, return_special_tokens_mask=True)
 
 class BatchProcessedDataset(IterableDataset):
-    def __init__(self, files, tokenizer, batch_size=1024, limit=-1):
+    def __init__(self, files, tokenizer, batch_size=4096, limit=-1):
         self.files = files
         self.batch_size = batch_size
         self.tokenizer = tokenizer
@@ -54,14 +53,14 @@ class BatchProcessedDataset(IterableDataset):
 
 
 def run_mlm(
-    output_dir:str, num_steps:int, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
-    input_dir=None, dataset_path=None, num_files=6, seed=2021,
-    batch_size=2048, num_eval_batches=20, limit=None, eval_steps=200, save_steps=1000,
-    padding='max_length', on_the_fly=False, num_proc=8,
-    resume_from_checkpoint=None, finetune=False,
+    output_dir:str, num_steps:int, input_dir, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
+    seed=2021, max_eval_steps=100, limit=None, eval_steps=200, save_steps=1000,
+    padding='max_length', on_the_fly=False, tok_batch_size=1024*16,
+    resume_from_checkpoint=None, finetune=False, logging_steps=100,
     per_device_batch_size=32, accumulation_steps=32,
     weight_decay=0.01, warmup_ratio=0.06, learning_rate=5e-4,
-    adam_beta1=0.9, adam_beta2=0.98, max_grad_norm=0,
+    adam_beta1=0.9, adam_beta2=0.98, max_grad_norm=0, ignore_data_skip=True,
+    tpu_num_cores=None,
 ):
     """
     Run MLM
@@ -79,10 +78,7 @@ def run_mlm(
 
     """
     print(limit)
-    if not input_dir and not dataset_path:
-        print("Must provide input_dir or dataset_path")
 
-    random.seed(seed)
     print("Loading model")
     if finetune:
         """
@@ -105,49 +101,28 @@ def run_mlm(
 
     print(f"Padding {padding}")
 
-    print("Sanity check")
-    print(f"@usuario => {tokenizer.encode('@usuario')}")
-    text = "esta es una PRUEBA EN MAYÚSCULAS Y CON TILDES @usuario @usuario"
-    print(f"{text} ==> {tokenizer.decode(tokenizer.encode(text))}")
 
-    if input_dir:
-        print("Loading datasets")
+    print("Loading datasets")
 
-        tweet_files = sorted(random.sample(
-            glob(os.path.join(input_dir, "*.txt")),
-            num_files
-        ))
+    tweet_files = glob(os.path.join(input_dir, "*.txt"))
+    random.shuffle(tweet_files)
+    print(f"Selecting {len(tweet_files)} files")
+    print(f"First: {tweet_files[:3]}")
+    train_files, test_files = tweet_files[:-1], tweet_files[-1:]
 
-        print(f"Selecting {tweet_files}")
-
-        train_files, test_files = tweet_files[:-1], tweet_files[-1:]
-
-        train_dataset = BatchProcessedDataset(
-            train_files, tokenizer, 1024)
-        test_dataset = BatchProcessedDataset(
-            test_files, tokenizer, 1024, limit=2048 * num_eval_batches
-        )
-
-    else:
-        print(f"Loading dataset from {dataset_path}")
-        dataset = load_from_disk(dataset_path)
-        train_dataset, test_dataset = dataset["train"], dataset["test"]
+    train_dataset = BatchProcessedDataset(
+        train_files, tokenizer, tok_batch_size)
+    test_dataset = BatchProcessedDataset(
+        test_files, tokenizer, tok_batch_size, limit=2048 * max_eval_steps
+    )
+    random.seed(seed)
 
 
-
-
-    # if limit:
-    #     print(f"Limiting to {limit}")
-
-    #     train_dataset = train_dataset.select(list(range(limit)))
-    #     test_dataset = test_dataset.select(list(range(limit)))
-    # else:
-    #     test_dataset = test_dataset.select(list(range(2048 * num_eval_batches)))
 
     args = {
         "eval_steps":eval_steps,
         "save_steps":save_steps,
-        "logging_steps": 50,
+        "logging_steps": logging_steps,
         "per_device_train_batch_size": per_device_batch_size,
         "per_device_eval_batch_size": per_device_batch_size,
         "gradient_accumulation_steps": accumulation_steps,
@@ -157,10 +132,11 @@ def run_mlm(
         "adam_beta1": adam_beta1,
         "adam_beta2": adam_beta2,
         "max_grad_norm": max_grad_norm,
+        "ignore_data_skip": ignore_data_skip or on_the_fly,
         "adam_epsilon": 1e-6,
+        "tpu_num_cores": tpu_num_cores,
     }
 
-    print(args)
     data_collator = DataCollatorForLanguageModeling(
         tokenizer=tokenizer, mlm=True, mlm_probability=0.15,
     )
@@ -179,7 +155,7 @@ def run_mlm(
         **args,
     )
 
-    print(training_args)
+
 
     # if on_the_fly:
     #     with training_args.main_process_first(desc="dataset map tokenization"):
@@ -196,19 +172,18 @@ def run_mlm(
     #         test_dataset = test_dataset.map(lambda x: tokenize(tokenizer, x, padding), batched=True, batch_size=batch_size, num_proc=num_proc)
     #         train_dataset = train_dataset.remove_columns(["text"])
     #         test_dataset = test_dataset.remove_columns(["text"])
-
-
-    # print(train_dataset[0])
     with training_args.main_process_first(desc="Checking lengths"):
+        print("Sanity check")
+        print(f"@usuario => {tokenizer.encode('@usuario')}")
+        text = "esta es una PRUEBA EN MAYÚSCULAS Y CON TILDES @usuario @usuario"
+        print(f"{text} ==> {tokenizer.decode(tokenizer.encode(text))}")
+        print(training_args)
         print("Checking lengths")
         train_lengths = {len(ex["input_ids"]) for ex, _ in zip(train_dataset, range(20_000))}
         test_lengths = {len(ex["input_ids"]) for ex, _ in zip(test_dataset, range(20_000))}
-        print(train_lengths)
-        print(test_lengths)
         assert len(train_lengths) == 1
         assert len(test_lengths) == 1
 
-    print("Training!")
     trainer = Trainer(
         model=model,
         args=training_args,
