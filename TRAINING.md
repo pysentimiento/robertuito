@@ -15,13 +15,14 @@ pdbs=64
 acc=4
 lr=0.0006
 num_proc=16
-num_steps=15000
-
+num_steps=5000
+warmup_ratio=0.07
 output_dir="models/beto-uncased-${num_steps}/"
 python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
-    --input_dir data/filtered_tweets/ --output_dir $output_dir --num_steps $num_steps\
-    --model_name 'dccuchile/bert-base-spanish-wwm-uncased'\
-    --per_device_batch_size $pdbs --accumulation_steps 4\
+    --input_dir data/filtered_tweets/ --output_dir $output_dir --num_steps $num_steps \
+    --model_name 'dccuchile/bert-base-spanish-wwm-uncased' \
+    --per_device_batch_size $pdbs --accumulation_steps 4 \
+    --warmup_ratio $warmup_ratio \
     --num_proc $num_proc --finetune
 ```
 
@@ -34,39 +35,28 @@ num_steps=25000; python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py --input_di
 
 ### Train from scratch
 
-On v3 TPU
-
-```
-model="models/twerto-base-uncased"
-num_proc=16 #Check your CPU cores
-num_steps=3000
-output_dir="models/twerto-base-uncased-${num_steps}"
-python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
-    --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
-    --num_steps $num_steps  --per_device_batch_size 128 --accumulation_steps 2\
-    --eval_steps 500 --save_steps 2000\
-    --num_proc $num_proc  --on_the_fly
-```
-
-### Academic budget
 ```bash
 export TPU_IP_ADDRESS=10.110.227.66
 export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 
 model="models/twerto-base-uncased"
 num_proc=16 #Check your CPU cores
-num_steps=500000
+num_steps=100000
 pdbs=128
-acc=4
+acc=8
 lr=0.0006
+eval_steps=3000
+save_steps=6000
+warmup_ratio=0.06
+tok_batch_size=16384
 output_dir="models/twerto-base-uncased-${num_steps}"
 python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
     --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
-    --num_steps $num_steps  --per_device_batch_size $pdbs --accumulation_steps $acc\
-    --learning_rate $lr --on_the_fly\
-    --eval_steps 500 --save_steps 2000\
+    --num_steps $num_steps  --per_device_batch_size $pdbs --accumulation_steps $acc \
+    --learning_rate $lr --warmup_ratio $warmup_ratio \
+    --tok_batch_size $tok_batch_size \
+    --eval_steps $eval_steps --save_steps $save_steps --logging_steps 100 --max_eval_steps 100 \
     --num_proc $num_proc
-    #--resume_from_checkpoint
 ```
 
 

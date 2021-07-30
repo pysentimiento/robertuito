@@ -54,9 +54,9 @@ class BatchProcessedDataset(IterableDataset):
 
 def run_mlm(
     output_dir:str, num_steps:int, input_dir, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
-    seed=2021, num_eval_batches=20, limit=None, eval_steps=200, save_steps=1000,
+    seed=2021, max_eval_steps=100, limit=None, eval_steps=200, save_steps=1000,
     padding='max_length', on_the_fly=False, tok_batch_size=1024*16,
-    resume_from_checkpoint=None, finetune=False,
+    resume_from_checkpoint=None, finetune=False, logging_steps=100,
     per_device_batch_size=32, accumulation_steps=32,
     weight_decay=0.01, warmup_ratio=0.06, learning_rate=5e-4,
     adam_beta1=0.9, adam_beta2=0.98, max_grad_norm=0, ignore_data_skip=True,
@@ -107,13 +107,13 @@ def run_mlm(
     tweet_files = glob(os.path.join(input_dir, "*.txt"))
     random.shuffle(tweet_files)
     print(f"Selecting {len(tweet_files)} files")
-
+    print(f"First: {tweet_files[:3]}")
     train_files, test_files = tweet_files[:-1], tweet_files[-1:]
 
     train_dataset = BatchProcessedDataset(
         train_files, tokenizer, tok_batch_size)
     test_dataset = BatchProcessedDataset(
-        test_files, tokenizer, tok_batch_size, limit=2048 * num_eval_batches
+        test_files, tokenizer, tok_batch_size, limit=2048 * max_eval_steps
     )
     random.seed(seed)
 
@@ -122,7 +122,7 @@ def run_mlm(
     args = {
         "eval_steps":eval_steps,
         "save_steps":save_steps,
-        "logging_steps": 50,
+        "logging_steps": logging_steps,
         "per_device_train_batch_size": per_device_batch_size,
         "per_device_eval_batch_size": per_device_batch_size,
         "gradient_accumulation_steps": accumulation_steps,
