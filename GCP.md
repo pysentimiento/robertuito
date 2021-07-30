@@ -53,7 +53,10 @@ export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 mkdir projects && cd projects
 git clone git@github.com:finiteautomata/finetune_vs_scratch.git
 cd finetune_vs_scratch
-pip install .
+pip install poetry
+poetry shell && poetry install
+pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.9-cp37-cp37m-linux_x86_64.whl # Chequear que esto esté ok
+
 ```
 
 

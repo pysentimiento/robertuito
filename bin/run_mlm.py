@@ -18,49 +18,21 @@ from transformers import (
     AutoModelForMaskedLM, AutoTokenizer, AutoConfig,
 )
 from finetune_vs_scratch.model import load_tokenizer
-from torch.utils.data import IterableDataset
+from finetune_vs_scratch.dataset import BatchProcessedDataset, DummyDataset
 
 def tokenize(tokenizer, batch, padding='max_length'):
     return tokenizer(batch['text'], padding=padding, truncation=True, return_special_tokens_mask=True)
-
-class BatchProcessedDataset(IterableDataset):
-    def __init__(self, files, tokenizer, batch_size=4096, limit=-1):
-        self.files = files
-        self.batch_size = batch_size
-        self.tokenizer = tokenizer
-        self.limit = limit
-
-    def __iter__(self):
-        num_iter = 0
-        for file_path in self.files:
-            with open(file_path) as f:
-
-                next_batch = [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
-
-                while next_batch:
-                    tokenized_batch = self.tokenizer(next_batch, padding='max_length', truncation=True, return_special_tokens_mask=True)
-                    for encoding in tokenized_batch.encodings:
-                        if num_iter == self.limit:
-                            return
-                        yield {
-                            "input_ids": encoding.ids,
-                            "token_type_ids": encoding.type_ids,
-                            "attention_mask": encoding.attention_mask,
-                            "special_tokens_mask": encoding.special_tokens_mask
-                        }
-                        num_iter += 1
-                    next_batch = [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
 
 
 def run_mlm(
     output_dir:str, num_steps:int, input_dir, model_name = 'dccuchile/bert-base-spanish-wwm-uncased',
     seed=2021, max_eval_steps=100, limit=None, eval_steps=200, save_steps=1000,
     padding='max_length', on_the_fly=False, tok_batch_size=1024*16,
-    resume_from_checkpoint=None, finetune=False, logging_steps=100,
+    resume_from_checkpoint=None, finetune=False, logging_steps=500,
     per_device_batch_size=32, accumulation_steps=32,
     weight_decay=0.01, warmup_ratio=0.06, learning_rate=5e-4,
     adam_beta1=0.9, adam_beta2=0.98, max_grad_norm=0, ignore_data_skip=True,
-    tpu_num_cores=None,
+    tpu_num_cores=None, dummy=False,
 ):
     """
     Run MLM
@@ -97,24 +69,35 @@ def run_mlm(
         tokenizer.model_max_length = 128
         model = AutoModelForMaskedLM.from_config(config)
         model.resize_token_embeddings(len(tokenizer))
-        print(model)
+        #print(model)
 
     print(f"Padding {padding}")
 
 
-    print("Loading datasets")
 
-    tweet_files = glob(os.path.join(input_dir, "*.txt"))
-    random.shuffle(tweet_files)
-    print(f"Selecting {len(tweet_files)} files")
-    print(f"First: {tweet_files[:3]}")
-    train_files, test_files = tweet_files[:-1], tweet_files[-1:]
+    if dummy:
+        print("Loading dummy dataset")
 
-    train_dataset = BatchProcessedDataset(
-        train_files, tokenizer, tok_batch_size)
-    test_dataset = BatchProcessedDataset(
-        test_files, tokenizer, tok_batch_size, limit=2048 * max_eval_steps
-    )
+        train_dataset = DummyDataset(
+            tokenizer("Esto es una prueba @usuario", padding=padding, truncation=True, return_special_tokens_mask=True),
+            50_000_000
+        )
+
+        test_dataset = train_dataset
+    else:
+        print("Loading datasets")
+
+        tweet_files = glob(os.path.join(input_dir, "*.txt"))
+        random.shuffle(tweet_files)
+        print(f"Selecting {len(tweet_files)} files")
+        print(f"First: {tweet_files[:3]}")
+        train_files, test_files = tweet_files[:-1], tweet_files[-1:]
+
+        train_dataset = BatchProcessedDataset(
+            train_files, tokenizer, tok_batch_size)
+        test_dataset = BatchProcessedDataset(
+            test_files, tokenizer, tok_batch_size, limit=2048 * max_eval_steps
+        )
     random.seed(seed)
 
 

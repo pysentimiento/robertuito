@@ -59,6 +59,33 @@ python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
     --num_proc $num_proc
 ```
 
+#### v2
+
+```bash
+export TPU_IP_ADDRESS=10.97.22.154
+export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
+
+model="models/twerto-base-uncased"
+num_proc=16 #Check your CPU cores
+num_steps=200000
+pdbs=64
+acc=16
+lr=0.0006
+eval_steps=2500
+save_steps=5000
+logging_steps=500
+warmup_ratio=0.06
+tok_batch_size=16384
+output_dir="models/twerto-base-uncased-${num_steps}"
+python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
+    --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
+    --num_steps $num_steps  --per_device_batch_size $pdbs --accumulation_steps $acc \
+    --learning_rate $lr --warmup_ratio $warmup_ratio \
+    --tok_batch_size $tok_batch_size \
+    --eval_steps $eval_steps --save_steps $save_steps --logging_steps $logging_steps --max_eval_steps 100 \
+    --num_proc $num_proc
+```
+
 
 ## run_mlm_hf.py
 
@@ -90,4 +117,37 @@ deepspeed --num_gpus 2 bin/run_mlm.py\
     --eval_steps 500 --save_steps 2000\
     --num_proc $num_proc --on_the_fly
 ```
+
+### Tests performance
+
+
+```bash
+export TPU_IP_ADDRESS=10.97.22.154
+export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
+
+model="models/twerto-base-uncased"
+num_steps=200
+pdbs=64
+acc=8
+lr=0.0006
+eval_steps=2500
+save_steps=5000
+logging_steps=2000
+warmup_ratio=0.06
+tok_batch_size=16384
+output_dir="models/prueba-bs-4k-base"
+python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
+    --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
+    --num_steps $num_steps  --per_device_batch_size $pdbs --accumulation_steps $acc \
+    --learning_rate $lr --warmup_ratio $warmup_ratio \
+    --tok_batch_size $tok_batch_size \
+    --eval_steps $eval_steps --save_steps $save_steps --logging_steps $logging_steps --max_eval_steps 100
+
+# Dummy 8k
+python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
+    --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
+    --num_steps $num_steps  --per_device_batch_size $pdbs --accumulation_steps 16 \
+    --learning_rate $lr --warmup_ratio $warmup_ratio \
+    --tok_batch_size $tok_batch_size \
+    --eval_steps $eval_steps --save_steps $save_steps --logging_steps $logging_steps --max_eval_steps 100 --dummy
 ```
