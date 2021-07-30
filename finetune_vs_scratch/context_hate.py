@@ -256,6 +256,7 @@ def run(model_name, device, train_path=None, test_path=None, limit=None, epochs=
         per_device_eval_batch_size=eval_batch_size,
         warmup_ratio=0.1,
         evaluation_strategy="epoch",
+        save_strategy="epoch",
         do_eval=False,
         weight_decay=0.01,
         logging_dir='./logs',
