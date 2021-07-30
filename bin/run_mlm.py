@@ -60,6 +60,7 @@ def run_mlm(
     per_device_batch_size=32, accumulation_steps=32,
     weight_decay=0.01, warmup_ratio=0.06, learning_rate=5e-4,
     adam_beta1=0.9, adam_beta2=0.98, max_grad_norm=0, ignore_data_skip=True,
+    tpu_num_cores=None,
 ):
     """
     Run MLM
@@ -114,8 +115,8 @@ def run_mlm(
     test_dataset = BatchProcessedDataset(
         test_files, tokenizer, tok_batch_size, limit=2048 * num_eval_batches
     )
-
     random.seed(seed)
+
 
 
     args = {
@@ -133,6 +134,7 @@ def run_mlm(
         "max_grad_norm": max_grad_norm,
         "ignore_data_skip": ignore_data_skip or on_the_fly,
         "adam_epsilon": 1e-6,
+        "tpu_num_cores": tpu_num_cores,
     }
 
     data_collator = DataCollatorForLanguageModeling(

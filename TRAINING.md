@@ -16,8 +16,10 @@ acc=4
 lr=0.0006
 num_proc=16
 num_steps=15000
+
+output_dir="models/beto-uncased-${num_steps}/"
 python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
-    --input_dir data/filtered_tweets/ --output_dir models/beto-uncased-${num_steps}/ --num_steps $num_steps\
+    --input_dir data/filtered_tweets/ --output_dir $output_dir --num_steps $num_steps\
     --model_name 'dccuchile/bert-base-spanish-wwm-uncased'\
     --per_device_batch_size $pdbs --accumulation_steps 4\
     --num_proc $num_proc --finetune
