@@ -18,7 +18,7 @@ from transformers import (
     AutoModelForMaskedLM, AutoTokenizer, AutoConfig,
 )
 from finetune_vs_scratch.model import load_tokenizer
-from finetune_vs_scratch.dataset import BatchProcessedDataset, DummyDataset
+from finetune_vs_scratch.dataset import BatchProcessedDataset, DummyDataset, DummyRandomAccessDataset
 
 def tokenize(tokenizer, batch, padding='max_length'):
     return tokenizer(batch['text'], padding=padding, truncation=True, return_special_tokens_mask=True)
@@ -32,7 +32,7 @@ def run_mlm(
     per_device_batch_size=32, accumulation_steps=32,
     weight_decay=0.01, warmup_ratio=0.06, learning_rate=5e-4,
     adam_beta1=0.9, adam_beta2=0.98, max_grad_norm=0, ignore_data_skip=True,
-    tpu_num_cores=None, dummy=False,
+    tpu_num_cores=None, dummy=False, dummy_random=False,
 ):
     """
     Run MLM
@@ -73,8 +73,6 @@ def run_mlm(
 
     print(f"Padding {padding}")
 
-
-
     if dummy:
         print("Loading dummy dataset")
 
@@ -84,6 +82,16 @@ def run_mlm(
         )
 
         test_dataset = train_dataset
+
+    elif dummy_random:
+        print("Loading random accesible dataset")
+        train_dataset = DummyRandomAccessDataset(
+            tokenizer("Esto es una prueba @usuario", padding=padding, truncation=True, return_special_tokens_mask=True),
+            50_000_000
+        )
+
+        test_dataset = train_dataset
+
     else:
         print("Loading datasets")
 
