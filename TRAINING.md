@@ -120,6 +120,15 @@ deepspeed --num_gpus 2 bin/run_mlm.py\
 
 ### Tests performance
 
+GRITO
+
+```bash
+python bin/run_mlm_hf.py \
+    --train_dir data/tweets/train/ --test_dir data/tweets/test \
+    --output_dir models/fruta \
+    --config_name "models/twerto-base-uncased" \
+    --tokenizer_name "models/twerto-base-uncased" --max_seq_length 128 \
+```
 
 ```bash
 export TPU_IP_ADDRESS=10.110.227.66
@@ -172,7 +181,7 @@ python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py \
 # Dummy 8k v3
 python bin/xla_spawn.py --num_cores 8 bin/dummy_mlm.py\
     --input_dir data/filtered_tweets/ --output_dir "/tmp/foobar" \
-    --num_steps 200  --per_device_batch_size 128 --accumulation_steps 8 \
+    --num_steps 200  --per_device_batch_size 16 --accumulation_steps 8 \
     --eval_steps 2000 --save_steps 2000 --logging_steps 2000
 # Dummy 4k v3
 python bin/xla_spawn.py --num_cores 8 bin/dummy_mlm.py\

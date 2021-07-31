@@ -7,13 +7,14 @@ class BatchProcessedDataset(IterableDataset):
         self.tokenizer = tokenizer
         self.limit = limit
 
+    def __nextbatch(self, f):
+        return [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
+
     def __iter__(self):
         num_iter = 0
         for file_path in self.files:
             with open(file_path) as f:
-
-                next_batch = [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
-
+                next_batch = self.__nextbatch(f)
                 while next_batch:
                     tokenized_batch = self.tokenizer(next_batch, padding='max_length', truncation=True, return_special_tokens_mask=True)
                     for encoding in tokenized_batch.encodings:
@@ -26,7 +27,13 @@ class BatchProcessedDataset(IterableDataset):
                             "special_tokens_mask": encoding.special_tokens_mask
                         }
                         num_iter += 1
-                    next_batch = [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
+                    next_batch = self.__nextbatch(f)
+
+    def __len__(self):
+        """
+        Approximate len
+        """
+        return 5_200_000 * len(self.files)
 
 
 class DummyDataset(IterableDataset):
