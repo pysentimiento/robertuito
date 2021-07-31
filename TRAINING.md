@@ -122,32 +122,69 @@ deepspeed --num_gpus 2 bin/run_mlm.py\
 
 
 ```bash
-export TPU_IP_ADDRESS=10.97.22.154
+export TPU_IP_ADDRESS=10.110.227.66
 export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 
-model="models/twerto-base-uncased"
-num_steps=200
-pdbs=64
-acc=8
-lr=0.0006
-eval_steps=2500
-save_steps=5000
-logging_steps=2000
-warmup_ratio=0.06
-tok_batch_size=16384
-output_dir="models/prueba-bs-4k-base"
-python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
-    --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
-    --num_steps $num_steps  --per_device_batch_size $pdbs --accumulation_steps $acc \
-    --learning_rate $lr --warmup_ratio $warmup_ratio \
-    --tok_batch_size $tok_batch_size \
-    --eval_steps $eval_steps --save_steps $save_steps --logging_steps $logging_steps --max_eval_steps 100
+# Test 8k v3
 
-# Dummy 8k
 python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
-    --input_dir data/filtered_tweets/ --output_dir $output_dir --model_name $model \
-    --num_steps $num_steps  --per_device_batch_size $pdbs --accumulation_steps 16 \
-    --learning_rate $lr --warmup_ratio $warmup_ratio \
-    --tok_batch_size $tok_batch_size \
-    --eval_steps $eval_steps --save_steps $save_steps --logging_steps $logging_steps --max_eval_steps 100 --dummy
+    --input_dir data/filtered_tweets/ --output_dir "/tmp/test-8k" \
+    --num_steps 200  --per_device_batch_size 128 --accumulation_steps 8 \
+    --warmup_ratio 0.06 \
+    --tok_batch_size 32768 --\
+    --eval_steps 2000 --save_steps 2000 --logging_steps 2000 --max_eval_steps 2000 \
+
+# Test 4k v3
+
+python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py\
+    --model_name "models/twerto-base-uncased" \
+    --input_dir data/filtered_tweets/ --output_dir "/tmp/test-8k" \
+    --num_steps 200  --per_device_batch_size 128 --accumulation_steps 4 \
+    --warmup_ratio 0.06 \
+    --tok_batch_size 32768 --\
+    --eval_steps 2000 --save_steps 2000 --logging_steps 2000 --max_eval_steps 2000
+
+# Test 4k v3 + HF
+python bin/xla_spawn.py --num_cores 8 run_mlm_hf.py \
+    --config_name "models/twerto-base-uncased" \
+    --tokenizer_name "models/twerto-base-uncased" \
+    --max_seq_length 128 \
+    --per_device_train_batch_size 128 --per_device_eval_batch_size 128 \
+    --gradient_accumulation_steps 4 \
+    --eval_steps 2000 --save_steps 2000 --logging_steps 2000 \
+    --train_file data/filtered_tweets/spanish-tweets-000.txt \
+    --validation_file data/filtered_tweets/spanish-tweets-001.txt \
+    --line_by_line --pad_to_max_length \
+    --do_train \
+    --output_dir "/tmp/test-mlm"
+
+
+# Test large 4k v3
+
+python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py \
+    --model_name "roberta-large" \
+    --input_dir data/filtered_tweets/ --output_dir "/tmp/test-8k" \
+    --num_steps 200  --per_device_batch_size 64 --accumulation_steps 8 \
+    --warmup_ratio 0.06 \
+    --tok_batch_size 32768 --\
+    --eval_steps 2000 --save_steps 2000 --logging_steps 2000 --max_eval_steps 2000 \
+
+# Dummy 8k v3
+python bin/xla_spawn.py --num_cores 8 bin/dummy_mlm.py\
+    --input_dir data/filtered_tweets/ --output_dir "/tmp/foobar" \
+    --num_steps 200  --per_device_batch_size 128 --accumulation_steps 8 \
+    --eval_steps 2000 --save_steps 2000 --logging_steps 2000
+# Dummy 4k v3
+python bin/xla_spawn.py --num_cores 8 bin/dummy_mlm.py\
+    --model_name "models/twerto-base-uncased" \
+    --input_dir data/filtered_tweets/ --output_dir "/tmp/foobar" \
+    --num_steps 200  --per_device_batch_size 128 --accumulation_steps 4 \
+    --eval_steps 2000 --save_steps 2000 --logging_steps 2000
+
+# Dummy large 4k v3
+python bin/xla_spawn.py --num_cores 8 bin/dummy_mlm.py\
+    --model_name "roberta-large" \
+    --input_dir data/filtered_tweets/ --output_dir "/tmp/foobar" \
+    --num_steps 200  --per_device_batch_size 64 --accumulation_steps 8 \
+    --eval_steps 2000 --save_steps 2000 --logging_steps 2000
 ```

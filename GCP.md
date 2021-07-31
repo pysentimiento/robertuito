@@ -43,7 +43,7 @@ gcloud compute tpus create $tpu_name \
 3. Configurar
 
 ```
-export TPU_IP_ADDRESS=10.40.109.186
+export TPU_IP_ADDRESS=10.110.227.66
 export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 ```
 

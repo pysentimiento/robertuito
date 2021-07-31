@@ -1,4 +1,4 @@
-from torch.utils.data import IterableDataset
+from torch.utils.data import IterableDataset, Dataset
 
 class BatchProcessedDataset(IterableDataset):
     def __init__(self, files, tokenizer, batch_size=4096, limit=-1):
@@ -42,3 +42,20 @@ class DummyDataset(IterableDataset):
     def __iter__(self):
         for _ in range(self.length):
             yield self.ret
+
+
+class DummyRandomAccessDataset(Dataset):
+    """
+    Just for test purposes
+
+    Dataset that returns always the same. Used to check out MXU utilization in TPU
+    """
+    def __init__(self, ret, length):
+        self.ret = ret
+        self.length = length
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, idx):
+        return self.ret
