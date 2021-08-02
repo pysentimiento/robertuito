@@ -31,7 +31,7 @@ from typing import Optional
 from glob import glob
 import datasets
 from datasets import load_dataset
-
+import random
 import transformers
 from transformers import (
     CONFIG_MAPPING,
@@ -204,10 +204,14 @@ def main():
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
-    if (2 <= len(sys.argv) <= 3) and sys.argv[-1].endswith(".json"):
+    if (2 <= len(sys.argv) <= 4):
+        if sys.argv[-1].endswith(".json"):
+            json_file = sys.argv[-1]
+        else:
+            json_file = sys.argv[1]
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[-1]))
+        model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(json_file))
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
@@ -329,6 +333,7 @@ def main():
             """
             Use our custom class
             """
+            random.shuffle(train_files)
             train_dataset = BatchProcessedDataset(
                 train_files, tokenizer, data_args.tokenization_batch_size,
                 padding=padding,
