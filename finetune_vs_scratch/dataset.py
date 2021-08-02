@@ -9,7 +9,8 @@ class BatchProcessedDataset(IterableDataset):
         self.limit = limit
 
     def __nextbatch(self, f):
-        return [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
+        nb = [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
+        return nb
 
     def __iter__(self):
         num_iter = 0
