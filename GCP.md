@@ -43,7 +43,7 @@ gcloud compute tpus create $tpu_name \
 3. Configurar
 
 ```
-export TPU_IP_ADDRESS=10.110.227.66
+export TPU_IP_ADDRESS=10.97.22.154
 export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 ```
 
@@ -54,7 +54,8 @@ mkdir projects && cd projects
 git clone git@github.com:finiteautomata/finetune_vs_scratch.git
 cd finetune_vs_scratch
 pip install poetry
-poetry shell && poetry install
+poetry install
+poetry shell
 pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.9-cp37-cp37m-linux_x86_64.whl # Chequear que esto esté ok
 
 ```
@@ -65,7 +66,9 @@ pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wh
 ```
 gsutil -m cp -r gs://pysentimiento/filtered_tweets data/
 cd data && mv filtered_tweets tweets
-cd tweets && mv
+cd tweets && mkdir train && mkdir test
+mv spanish-tweets-099.txt test/
+mv *.txt train/
 ```
 
 ## Correr finetuning

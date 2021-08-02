@@ -8,7 +8,7 @@ Acá usamos una n2-standard-16
 
 |Setup         | Batch size  | Iter/s    | Tiempo | MXU   |
 |--------------|-------------|-----------|--------|-------|
-| Base         |   4k        |  4.5      | 15:06  | ~53%  |
+| Base         |   4k        |  4.3      | 15:06  | ~53%  |
 | Base         |   8k        | ~8.5      | 28:53  | ~53%  |
 | Dummy-base   |   4k        |  4.08     | 13:35  | ~53%  |
 | Dummy-base   |   8k        |  8.00     | 26:28  | ~53%  |
@@ -16,7 +16,7 @@ Acá usamos una n2-standard-16
 
 Entonces, 400k por 4k toma =>
 
-(400k * 4.5s) (3600s)
+(100k * 4.3s) (3600s)
 
 ## 2x1080Ti
 
@@ -65,3 +65,7 @@ deepspeed --num_gpus 2 bin/run_mlm.py config/performance_test/4k-grito.json
 ```
 
 #### v2
+
+```bash
+python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py config/performance_test/4k-v2.json
+```
