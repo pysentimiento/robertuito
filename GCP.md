@@ -63,7 +63,9 @@ pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wh
 5. Copiar datos
 
 ```
-gsutil cp -r gs://pysentimiento/filtered_tweets data/
+gsutil -m cp -r gs://pysentimiento/filtered_tweets data/
+cd data && mv filtered_tweets tweets
+cd tweets && mv
 ```
 
 ## Correr finetuning

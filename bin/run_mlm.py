@@ -344,7 +344,7 @@ def main():
             """
 
             raw_datasets = load_dataset("text",
-                data_files={"train": train_files, "test": test_files}
+                data_files = {"train": train_files, "test": eval_files}
             )
     # if data_args.dataset_name is not None:
     #     # Downloading and loading a dataset from the hub.
@@ -450,6 +450,10 @@ def main():
 
             train_dataset = tokenized_datasets["train"]
             eval_dataset = tokenized_datasets["test"]
+
+    if training_args.do_eval:
+        if data_args.max_eval_samples is not None:
+            eval_dataset.limit = data_args.max_eval_samples
 
     # Data collator
     # This one will take care of randomly masking the tokens.
