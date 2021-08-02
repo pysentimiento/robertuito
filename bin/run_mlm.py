@@ -327,10 +327,12 @@ def main():
 
         if data_args.tokenize_on_the_fly:
             train_dataset = BatchProcessedDataset(
-                train_files, tokenizer, data_args.tokenization_batch_size
+                train_files, tokenizer, data_args.tokenization_batch_size,
+                padding=padding,
             )
             eval_dataset = BatchProcessedDataset(
-                eval_files, tokenizer, data_args.tokenization_batch_size#, limit=2048 * max_eval_steps
+                eval_files, tokenizer, data_args.tokenization_batch_size,
+                padding=padding#, limit=2048 * max_eval_steps
             )
 
         else:

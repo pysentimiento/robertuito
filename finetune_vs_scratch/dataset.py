@@ -1,10 +1,11 @@
 from torch.utils.data import IterableDataset, Dataset
 
 class BatchProcessedDataset(IterableDataset):
-    def __init__(self, files, tokenizer, batch_size=4096, limit=-1):
+    def __init__(self, files, tokenizer, batch_size=4096, limit=-1, padding='max_length'):
         self.files = files
         self.batch_size = batch_size
         self.tokenizer = tokenizer
+        self.padding = padding
         self.limit = limit
 
     def __nextbatch(self, f):
@@ -16,7 +17,7 @@ class BatchProcessedDataset(IterableDataset):
             with open(file_path) as f:
                 next_batch = self.__nextbatch(f)
                 while next_batch:
-                    tokenized_batch = self.tokenizer(next_batch, padding='max_length', truncation=True, return_special_tokens_mask=True)
+                    tokenized_batch = self.tokenizer(next_batch, padding=self.padding, truncation=True, return_special_tokens_mask=True)
                     for encoding in tokenized_batch.encodings:
                         if num_iter == self.limit:
                             return
