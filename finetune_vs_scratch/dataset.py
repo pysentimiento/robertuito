@@ -29,12 +29,6 @@ class BatchProcessedDataset(IterableDataset):
                         num_iter += 1
                     next_batch = self.__nextbatch(f)
 
-    def __len__(self):
-        """
-        Approximate len
-        """
-        return 5_200_000 * len(self.files)
-
 
 class DummyDataset(IterableDataset):
     """
