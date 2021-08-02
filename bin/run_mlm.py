@@ -326,6 +326,9 @@ def main():
         eval_files = glob(os.path.join(data_args.eval_dir, "*.txt"))
 
         if data_args.tokenize_on_the_fly:
+            """
+            Use our custom class
+            """
             train_dataset = BatchProcessedDataset(
                 train_files, tokenizer, data_args.tokenization_batch_size,
                 padding=padding,
@@ -339,8 +342,10 @@ def main():
             """
             Load using datasets
             """
-            train_dataset = load_dataset("text", data_files=train_files)["train"]
-            eval_dataset = load_dataset("text", data_files=eval_files)["train"]
+
+            raw_datasets = load_dataset("text",
+                data_files={"train": train_files, "test": test_files}
+            )
     # if data_args.dataset_name is not None:
     #     # Downloading and loading a dataset from the hub.
     #     raw_datasets = load_dataset(
@@ -420,7 +425,7 @@ def main():
     else:
         def tokenize_function(examples):
             # Remove empty lines
-            examples[text_column_name] = [
+            examples["text"] = [
                 line for line in examples["text"] if len(line) > 0 and not line.isspace()
             ]
             return tokenizer(
@@ -442,6 +447,9 @@ def main():
                 load_from_cache_file=not data_args.overwrite_cache,
                 desc="Running tokenizer on dataset line_by_line",
             )
+
+            train_dataset = tokenized_datasets["train"]
+            eval_dataset = tokenized_datasets["test"]
 
     # Data collator
     # This one will take care of randomly masking the tokens.
