@@ -14,6 +14,15 @@ Acá usamos una n2-standard-16
 | Dummy-base   |   8k        |  8.00     | 26:28  | ~53%  |
 
 
+## 2x1080Ti
+|Setup         | Batch size  | s/Iter    | Tiempo | MXU   |
+|--------------|-------------|-----------|--------|-------|
+| Base         |   4k        | ~16s/i    | 50:00  |       |
+| Base         |   8k        | ~28s/i    |        |       |
+| Dummy-base   |   4k        | 26.62     | 100:00 |       |
+| Dummy-base   |   8k        |           |        |       |
+
+Una cosita nomás: acá usamos padding no a longitud máxima, aprovechando que las GPU pueden hacer algo más dinámico
 
 ## v3
 
@@ -26,6 +35,8 @@ Acá usamos una n2-standard-16
 | Dummy-base   |   4k        |           | 7:35   |       |
 | Dummy-base   |   8k        |           |        |       |
 
+
+
 Hay un problema de micros acá...
 
 Si usamos 32 micros
@@ -37,3 +48,15 @@ Si usamos 32 micros
 | Dummy-base   |   4k        |           |        |       |
 | Dummy-base   |   8k        |           |        |       |
 
+
+
+### Scripts
+
+#### Grito
+
+```bash
+deepspeed --num_gpus 2 bin/run_mlm.py config/performance_test/4k-grito-dummy.json
+deepspeed --num_gpus 2 bin/run_mlm.py config/performance_test/4k-grito.json
+```
+
+#### v2
