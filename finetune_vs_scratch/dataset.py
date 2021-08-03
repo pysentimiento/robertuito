@@ -1,4 +1,8 @@
+import logging
 from torch.utils.data import IterableDataset, Dataset
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class BatchProcessedDataset(IterableDataset):
     def __init__(self, files, tokenizer, batch_size=4096, limit=-1, padding='max_length'):
@@ -15,6 +19,7 @@ class BatchProcessedDataset(IterableDataset):
     def __iter__(self):
         num_iter = 0
         for file_path in self.files:
+            logger.info(f"Opening file {file_path}")
             with open(file_path) as f:
                 next_batch = self.__nextbatch(f)
                 while next_batch:
@@ -29,7 +34,14 @@ class BatchProcessedDataset(IterableDataset):
                             "special_tokens_mask": encoding.special_tokens_mask
                         }
                         num_iter += 1
+                    old_batch = next_batch
                     next_batch = self.__nextbatch(f)
+
+                    if next_batch:
+                        """
+                        Check we are not stuck in the same place
+                        """
+                        assert next_batch[0] != old_batch[0]
 
 
 class DummyDataset(IterableDataset):

@@ -334,12 +334,13 @@ def main():
             Use our custom class
             """
             random.shuffle(train_files)
+            logger.info(f"Tokenization batch size {data_args.tokenization_batch_size}")
             train_dataset = BatchProcessedDataset(
-                train_files, tokenizer, data_args.tokenization_batch_size,
+                train_files, tokenizer, batch_size=data_args.tokenization_batch_size,
                 padding=padding,
             )
             eval_dataset = BatchProcessedDataset(
-                eval_files, tokenizer, data_args.tokenization_batch_size,
+                eval_files, tokenizer, batch_size=data_args.tokenization_batch_size,
                 padding=padding#, limit=2048 * max_eval_steps
             )
 
@@ -434,14 +435,15 @@ def main():
         trainer.save_model()  # Saves the tokenizer too for easy upload
         metrics = train_result.metrics
 
-        max_train_samples = (
-            data_args.max_train_samples if data_args.max_train_samples is not None else len(train_dataset)
-        )
 
         try:
+            max_train_samples = (
+                data_args.max_train_samples if data_args.max_train_samples is not None else len(train_dataset)
+            )
             metrics["train_samples"] = min(max_train_samples, len(train_dataset))
         except TypeError:
-            metrics["train_samples"] = max_train_samples
+            # TPU =>
+            metrics["train_samples"] = None
 
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)
@@ -453,8 +455,12 @@ def main():
 
         metrics = trainer.evaluate()
 
-        max_eval_samples = data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_dataset)
-        metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))
+        try:
+            max_eval_samples = data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_dataset)
+            metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))
+        except:
+            metrics["train_samples"] = None
+
         try:
             perplexity = math.exp(metrics["eval_loss"])
         except OverflowError:
