@@ -35,9 +35,9 @@ Acá usamos una n2-standard-16
 
 |Setup         | Batch size  | Iter/s    | Tiempo | MXU   |
 |--------------|-------------|-----------|--------|-------|
-| Base         |   4k        | 2.77      | 13:02  | 32%   |
+| Base         |   4k        | ~2.66     | 13:02  | 32%   |
 | Base         |   8k        |           | 20:13  |~35%   |
-| Dummy-base   |   4k        |           | 7:35   |       |
+| Dummy-base   |   4k        |~2.2       | 7:35   |       |
 | Dummy-base   |   8k        |           |        |       |
 
 
