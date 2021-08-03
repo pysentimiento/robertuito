@@ -15,6 +15,22 @@ gcloud compute instances create $NAME \
     --zone us-central1-f \
     --preemptible
 ```
+
+## v3 instance
+
+```
+NAME="gaia"
+gcloud compute instances create $NAME \
+    --boot-disk-size=200GB \
+    --boot-disk-type="pd-balanced" \
+    --machine-type "e2-standard-16" \
+    --image-family="pytorch-1-9-xla-debian-10" \
+    --image-project=ml-images  \
+    --scopes=https://www.googleapis.com/auth/cloud-platform \
+    --zone europe-west4-a \
+    --preemptible
+```
+
 1. Tmux y sarasa
 
 ```bash

@@ -203,6 +203,7 @@ def main():
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
+    # Set seed before initializing model.
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if (2 <= len(sys.argv) <= 4):
         if sys.argv[-1].endswith(".json"):
@@ -215,6 +216,7 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
+    set_seed(training_args.seed)
     print("Model args: ",model_args)
     # Setup logging
     logging.basicConfig(
@@ -253,8 +255,6 @@ def main():
                 "the `--output_dir` or add `--overwrite_output_dir` to train from scratch."
             )
 
-    # Set seed before initializing model.
-    set_seed(training_args.seed)
 
     config_kwargs = {
         "cache_dir": model_args.cache_dir,
