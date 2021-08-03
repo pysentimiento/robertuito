@@ -334,6 +334,9 @@ def main():
             Use our custom class
             """
             random.shuffle(train_files)
+
+            if data_args.max_eval_samples is None or not type(data_args.max_eval_samples) is int:
+                raise ValueError("Must provide max_eval_samples")
             logger.info(f"Tokenization batch size {data_args.tokenization_batch_size}")
             train_dataset = BatchProcessedDataset(
                 train_files, tokenizer, batch_size=data_args.tokenization_batch_size,
@@ -341,7 +344,7 @@ def main():
             )
             eval_dataset = BatchProcessedDataset(
                 eval_files, tokenizer, batch_size=data_args.tokenization_batch_size,
-                padding=padding#, limit=2048 * max_eval_steps
+                padding=padding, limit=data_args.max_eval_samples
             )
 
         else:
@@ -400,10 +403,6 @@ def main():
 
             train_dataset = tokenized_datasets["train"]
             eval_dataset = tokenized_datasets["test"]
-
-    if training_args.do_eval:
-        if data_args.max_eval_samples is not None:
-            eval_dataset.limit = data_args.max_eval_samples
 
     # Data collator
     # This one will take care of randomly masking the tokens.

@@ -1,6 +1,23 @@
-0. Tmux y sarasa
+0. Create instance
 
+
+## v2 instance
+
+```bash
+NAME="saturno-cased"
+gcloud compute instances create $NAME \
+    --boot-disk-size=200GB \
+    --boot-disk-type="pd-balanced" \
+    --machine-type "e2-standard-8" \
+    --image-family="pytorch-1-9-xla-debian-10" \
+    --image-project=ml-images  \
+    --scopes=https://www.googleapis.com/auth/cloud-platform \
+    --zone us-central1-f \
+    --preemptible
 ```
+1. Tmux y sarasa
+
+```bash
 sudo rm /var/lib/apt/lists/lock # Por alguna razón está lockeado
 echo 'set -g default-terminal "xterm-256color"' >> .tmux.conf
 git config --global alias.co checkout
@@ -19,7 +36,7 @@ git config --global core.editor vi
 ```
 gcloud config set compute/zone us-central1-f
 
-tpu_name="pysentimiento-tpu-ne"
+tpu_name="pysentimiento-tpu-2"
 echo "Creating ${tpu_name}"
 gcloud compute tpus create $tpu_name \
     --accelerator-type=v2-8 \
@@ -55,8 +72,7 @@ git clone git@github.com:finiteautomata/finetune_vs_scratch.git
 cd finetune_vs_scratch
 pip install poetry
 poetry install
-poetry shell
-pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.9-cp37-cp37m-linux_x86_64.whl # Chequear que esto esté ok
+poetry run pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.9-cp37-cp37m-linux_x86_64.whl # Chequear que esto esté ok
 
 ```
 
@@ -64,6 +80,7 @@ pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wh
 5. Copiar datos
 
 ```
+mkdir data
 gsutil -m cp -r gs://pysentimiento/filtered_tweets data/
 cd data && mv filtered_tweets tweets
 cd tweets && mkdir train && mkdir test

@@ -5,6 +5,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 class BatchProcessedDataset(IterableDataset):
+    """
+    A dataset which streams and process tweets from files
+    """
     def __init__(self, files, tokenizer, batch_size=4096, limit=-1, padding='max_length'):
         self.files = files
         self.batch_size = batch_size
@@ -25,7 +28,7 @@ class BatchProcessedDataset(IterableDataset):
                 while next_batch:
                     tokenized_batch = self.tokenizer(next_batch, padding=self.padding, truncation=True, return_special_tokens_mask=True)
                     for encoding in tokenized_batch.encodings:
-                        if num_iter == self.limit:
+                        if num_iter > 0 and num_iter >= self.limit:
                             return
                         yield {
                             "input_ids": encoding.ids,
