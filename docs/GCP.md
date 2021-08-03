@@ -43,6 +43,11 @@ git config --global alias.st status
 git config --global user.email jmperez.85@gmail.com
 git config --global user.name "Juan Manuel Pérez"
 git config --global core.editor vi
+
+cat >> .bashrc
+
+export TPU_IP_ADDRESS=10.110.227.66
+export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 ```
 
 
@@ -76,7 +81,7 @@ gcloud compute tpus create $tpu_name \
 3. Configurar
 
 ```
-export TPU_IP_ADDRESS=10.49.102.242
+export TPU_IP_ADDRESS=10.110.227.66
 export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 ```
 
