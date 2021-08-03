@@ -60,7 +60,7 @@ gcloud compute tpus create $tpu_name \
 3. Configurar
 
 ```
-export TPU_IP_ADDRESS=10.97.22.154
+export TPU_IP_ADDRESS=10.49.102.242
 export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
 ```
 
@@ -86,6 +86,15 @@ cd data && mv filtered_tweets tweets
 cd tweets && mkdir train && mkdir test
 mv spanish-tweets-099.txt test/
 mv *.txt train/
+```
+
+6. Crear swap...
+
+```bash
+sudo fallocate -l 8G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
 ```
 
 ## Correr finetuning
