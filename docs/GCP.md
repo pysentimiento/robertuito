@@ -20,12 +20,12 @@ gcloud compute instances create $NAME \
 
 ```
 NAME="gaia"
-gcloud compute instances create $NAME \
-    --boot-disk-size=200GB \
+gcloud compute instances create $NAME  \
+    --boot-disk-size=160GB \
     --boot-disk-type="pd-balanced" \
-    --machine-type "e2-standard-16" \
+    --machine-type "e2-custom-32-50176" \
     --image-family="pytorch-1-9-xla-debian-10" \
-    --image-project=ml-images  \
+    --image-project=ml-images \
     --scopes=https://www.googleapis.com/auth/cloud-platform \
     --zone europe-west4-a \
     --preemptible
@@ -70,7 +70,7 @@ gcloud compute tpus create $tpu_name \
 ```
 gcloud config set compute/zone europe-west4-a
 
-tpu_name="gaia-tpu"
+tpu_name="gaia-tpu-2"
 echo "Creating ${tpu_name}"
 gcloud compute tpus create $tpu_name \
     --accelerator-type=v3-8 \

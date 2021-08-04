@@ -1,0 +1,35 @@
+{
+    "train_dir": "data/tweets/train",
+    "eval_dir": "data/tweets/test",
+
+    "pad_to_max_length": true,
+    "max_seq_length": 128,
+    "tokenize_on_the_fly": true,
+
+    "do_train": true,
+    "max_steps": 200,
+    "max_train_samples": 200,
+    "max_eval_samples": 1000,
+    "eval_steps": 1000,
+    "logging_steps": 1000,
+
+    "config_name": "models/twerto-base-uncased",
+    "tokenizer_name": "models/twerto-base-uncased",
+    "output_dir": "/tmp/4k-test",
+    "overwrite_output_dir": true,
+
+    "tokenization_batch_size": 50000,
+
+    "weight_decay": 0.01,
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.98,
+    "learning_rate": 0.0005,
+    "max_grad_norm": 0,
+
+    "warmup_ratio": 0.06,
+    "ignore_data_skip": true,
+
+    "per_device_train_batch_size": 128,
+    "per_device_test_batch_size": 128,
+    "gradient_accumulation_steps": 8
+}
