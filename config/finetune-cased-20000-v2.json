@@ -1,0 +1,45 @@
+{
+    "train_dir": "data/tweets/train",
+    "eval_dir": "data/tweets/test",
+
+    "pad_to_max_length": true,
+    "max_seq_length": 128,
+    "tokenize_on_the_fly": true,
+
+    "do_train": true,
+    "do_eval": true,
+    "seed": 10101,
+    "max_steps": 20000,
+    "eval_steps": 500,
+    "save_steps": 1000,
+
+    "max_eval_samples": 131072,
+    "logging_steps": 100,
+    "logging_strategy": "steps",
+    "logging_dir": "./logs/",
+    "evaluation_strategy": "steps",
+
+
+    "model_name_or_path": "dccuchile/bert-base-spanish-wwm-cased",
+    "tokenizer_name": "models/beto-cased-finetuned",
+    "output_dir": "models/beto-cased-20000",
+    "overwrite_output_dir": true,
+
+    "tokenization_batch_size": 30000,
+
+    "weight_decay": 0.01,
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.98,
+    "adam_epsilon": 1e-6,
+    "learning_rate": 0.0005,
+    "max_grad_norm": 0,
+
+    "warmup_ratio": 0.06,
+
+    "resume_from_checkpoint": true,
+    "ignore_data_skip": true,
+
+    "per_device_train_batch_size": 64,
+    "per_device_eval_batch_size": 64,
+    "gradient_accumulation_steps": 4
+}

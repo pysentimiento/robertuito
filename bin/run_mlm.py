@@ -26,6 +26,7 @@ import math
 from multiprocessing.sharedctypes import Value
 import os
 import sys
+import time
 from dataclasses import dataclass, field
 from typing import Optional
 from glob import glob
@@ -198,7 +199,7 @@ class DataTrainingArguments:
             raise ValueError("Must provide train_dir & eval_dir or set dummy_dataset")
 
 
-def main():
+def main(seed):
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
@@ -216,8 +217,6 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    set_seed(training_args.seed)
-    print("Model args: ",model_args)
     # Setup logging
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -225,8 +224,29 @@ def main():
         handlers=[logging.StreamHandler(sys.stdout)],
     )
 
+    """
+    This seed is only to shuffle lists
+    """
     log_level = training_args.get_process_log_level()
     logger.setLevel(log_level)
+
+    if data_args.train_dir:
+        logger.info(f"Seed : {seed}")
+        random.seed(seed)
+        train_files = sorted(glob(os.path.join(data_args.train_dir, "*.txt.*")))
+        eval_files = sorted(glob(os.path.join(data_args.eval_dir, "*.txt.*")))
+
+        random.shuffle(train_files)
+
+        logger.info(f"First files: {train_files[:5]}")
+
+
+
+
+
+    set_seed(training_args.seed)
+    print("Model args: ",model_args)
+
     datasets.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.enable_default_handler()
@@ -326,14 +346,10 @@ def main():
         """
         Load train and test
         """
-        train_files = glob(os.path.join(data_args.train_dir, "*.txt"))
-        eval_files = glob(os.path.join(data_args.eval_dir, "*.txt"))
-
         if data_args.tokenize_on_the_fly:
             """
             Use our custom class
             """
-            random.shuffle(train_files)
 
             if data_args.max_eval_samples is None or not type(data_args.max_eval_samples) is int:
                 raise ValueError("Must provide max_eval_samples")
@@ -482,10 +498,10 @@ def main():
         trainer.push_to_hub(**kwargs)
 
 
-def _mp_fn(index):
+def _mp_fn(index, seed):
     # For xla_spawn (TPUs)
-    main()
+    main(seed)
 
 
 if __name__ == "__main__":
-    main()
+    main(time.time())
