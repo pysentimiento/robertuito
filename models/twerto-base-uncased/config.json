@@ -16,7 +16,7 @@
   "pad_token_id": 1,
   "position_embedding_type": "absolute",
   "transformers_version": "4.9.1",
-  "type_vocab_size": 2,
+  "type_vocab_size": 1,
   "use_cache": true,
   "vocab_size": 30000
 }

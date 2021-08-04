@@ -41,7 +41,6 @@ Acá usamos una n2-standard-16
 | Dummy-base   |   8k        |           |        |       |
 
 
-
 Hay un problema de micros acá...
 
 Si usamos 32 micros
@@ -53,7 +52,9 @@ Si usamos 32 micros
 | Dummy-base   |   4k        | 2.1       |  8:19  |       |
 | Dummy-base   |   8k        |           |        |       |
 
-Acá un bsz de 4k va
+Acá un bsz de 4k va!
+
+2.5s por step son ~34k steps por días. 200k steps tomaría alrededor de 6 días. Vamos con esa
 
 
 ### Scripts
