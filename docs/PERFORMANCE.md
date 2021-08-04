@@ -48,11 +48,12 @@ Si usamos 32 micros
 
 |Setup         | Batch size  | Iter/s    | Tiempo | MXU   |
 |--------------|-------------|-----------|--------|-------|
-| Base         |   4k        |           |        |       |
-| Base         |   8k        |           |        |       |
-| Dummy-base   |   4k        |           |        |       |
+| Base         |   4k        | 2.24      |  8:38  |       |
+| Base         |   8k        | ~5        |  16:48 |       |
+| Dummy-base   |   4k        | 2.1       |  8:19  |       |
 | Dummy-base   |   8k        |           |        |       |
 
+Acá un bsz de 4k va
 
 
 ### Scripts
