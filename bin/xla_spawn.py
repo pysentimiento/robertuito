@@ -23,6 +23,7 @@ Inspired by https://github.com/pytorch/pytorch/blob/master/torch/distributed/lau
 
 import importlib
 import sys
+import time
 from argparse import REMAINDER, ArgumentParser
 from pathlib import Path
 
@@ -75,7 +76,7 @@ def main():
     # Patch sys.argv
     sys.argv = [args.training_script] + args.training_script_args + ["--tpu_num_cores", str(args.num_cores)]
 
-    xmp.spawn(mod._mp_fn, args=(), nprocs=args.num_cores)
+    xmp.spawn(mod._mp_fn, args=(time.time(),), nprocs=args.num_cores)
 
 
 if __name__ == "__main__":
