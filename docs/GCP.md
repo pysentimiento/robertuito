@@ -78,14 +78,8 @@ gcloud compute tpus create $tpu_name \
 ```
 
 
-3. Configurar
 
-```
-export TPU_IP_ADDRESS=10.110.227.66
-export XRT_TPU_CONFIG="tpu_worker;0;$TPU_IP_ADDRESS:8470"
-```
-
-4. Clonar repo
+3. Clonar repo
 
 ```
 mkdir projects && cd projects
@@ -102,11 +96,7 @@ poetry run pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu
 
 ```
 mkdir data
-gsutil -m cp -r gs://pysentimiento/filtered_tweets data/
-cd data && mv filtered_tweets tweets
-cd tweets && mkdir train && mkdir test
-mv spanish-tweets-099.txt test/
-mv *.txt train/
+gsutil -m cp gs://pysentimiento/data .
 ```
 
 6. Crear swap...
