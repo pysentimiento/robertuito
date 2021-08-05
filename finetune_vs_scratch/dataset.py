@@ -37,14 +37,7 @@ class BatchProcessedDataset(IterableDataset):
                             "special_tokens_mask": encoding.special_tokens_mask
                         }
                         num_iter += 1
-                    old_batch = next_batch
                     next_batch = self.__nextbatch(f)
-
-                    if next_batch:
-                        """
-                        Check we are not stuck in the same place
-                        """
-                        assert next_batch[0] != old_batch[0]
 
 
 class DummyDataset(IterableDataset):

@@ -54,7 +54,7 @@ Si usamos 32 micros
 
 Acá un bsz de 4k va!
 
-2.5s por step son ~34k steps por días. 200k steps tomaría alrededor de 6 días. Vamos con esa
+2.5s por step son  1440 por hora, ~34k steps por días. 200k steps tomaría alrededor de 6 días. Vamos con esa
 
 
 ### Scripts
