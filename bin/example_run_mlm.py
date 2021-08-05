@@ -238,7 +238,7 @@ class BatchProcessedDataset(IterableDataset):
 
 
 
-def main(seed):
+def main():
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
@@ -270,8 +270,6 @@ def main(seed):
     logger.setLevel(log_level)
 
     if data_args.train_dir:
-        logger.info(f"Seed : {seed}")
-        random.seed(seed)
         train_files = sorted(glob(os.path.join(data_args.train_dir, "*.txt.*")))
         eval_files = sorted(glob(os.path.join(data_args.eval_dir, "*.txt.*")))
 
@@ -528,9 +526,9 @@ def main(seed):
         trainer.push_to_hub(**kwargs)
 
 
-def _mp_fn(index, seed):
+def _mp_fn(index):
     # For xla_spawn (TPUs)
-    main(seed)
+    main()
 
 
 if __name__ == "__main__":
