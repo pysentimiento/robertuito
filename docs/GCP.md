@@ -1,5 +1,6 @@
 0. Create instance
 
+Link precios: https://cloud.google.com/products/calculator/#id=e89ffef9-b07b-4379-8d65-3eee6508c814
 
 ## v2 instance
 
