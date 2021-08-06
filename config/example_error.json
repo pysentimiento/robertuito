@@ -38,7 +38,7 @@
     "resume_from_checkpoint": true,
     "ignore_data_skip": true,
 
-    "per_device_train_batch_size": 64,
-    "per_device_eval_batch_size": 64,
+    "per_device_train_batch_size": 8,
+    "per_device_eval_batch_size": 8,
     "gradient_accumulation_steps": 1
 }
