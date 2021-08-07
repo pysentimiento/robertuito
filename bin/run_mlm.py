@@ -138,6 +138,14 @@ class DataTrainingArguments:
         metadata={"help": "Path to test files."}
     )
 
+
+    use_datasets: bool = field(
+        default=False,
+        metadata={
+            "help": "Use `datasets` instead of our custom datasets",
+        },
+    )
+
     max_seq_length: Optional[int] = field(
         default=None,
         metadata={
@@ -342,14 +350,25 @@ def main(seed):
         )
 
         eval_dataset = train_dataset
+        training_args.remove_unused_columns = False
     else:
         """
         Load train and test
         """
-        if data_args.tokenize_on_the_fly:
+        if data_args.use_datasets:
+
+            """
+            Load using datasets
+            """
+
+            raw_datasets = load_dataset("text",
+                data_files = {"train": train_files, "test": eval_files}
+            )
+        else:
             """
             Use our custom class
             """
+            training_args.remove_unused_columns = False
 
             if data_args.max_eval_samples is None or not type(data_args.max_eval_samples) is int:
                 raise ValueError("Must provide max_eval_samples")
@@ -361,15 +380,6 @@ def main(seed):
             eval_dataset = BatchProcessedDataset(
                 eval_files, tokenizer, batch_size=data_args.tokenization_batch_size,
                 padding=padding, limit=data_args.max_eval_samples
-            )
-
-        else:
-            """
-            Load using datasets
-            """
-
-            raw_datasets = load_dataset("text",
-                data_files = {"train": train_files, "test": eval_files}
             )
 
 
@@ -389,9 +399,8 @@ def main(seed):
             )
         max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
 
-    if data_args.tokenize_on_the_fly or data_args.dummy_dataset:
-        training_args.remove_unused_columns = False
-    else:
+    if data_args.use_datasets:
+        logger.info("Using datasets library")
         def tokenize_function(examples):
             # Remove empty lines
             examples["text"] = [
@@ -407,15 +416,21 @@ def main(seed):
                 return_special_tokens_mask=True,
             )
 
-        with training_args.main_process_first(desc="dataset map tokenization"):
-            tokenized_datasets = raw_datasets.map(
-                tokenize_function,
-                batched=True,
-                num_proc=data_args.preprocessing_num_workers,
-                remove_columns=["text"],
-                load_from_cache_file=not data_args.overwrite_cache,
-                desc="Running tokenizer on dataset line_by_line",
-            )
+        if data_args.tokenize_on_the_fly:
+            raw_datasets.set_transform(tokenize_function)
+            train_dataset = raw_datasets["train"]
+            eval_dataset = raw_datasets["test"]
+
+        else:
+            with training_args.main_process_first(desc="dataset map tokenization"):
+                tokenized_datasets = raw_datasets.map(
+                    tokenize_function,
+                    batched=True,
+                    num_proc=data_args.preprocessing_num_workers,
+                    remove_columns=["text"],
+                    load_from_cache_file=not data_args.overwrite_cache,
+                    desc="Running tokenizer on dataset line_by_line",
+                )
 
             train_dataset = tokenized_datasets["train"]
             eval_dataset = tokenized_datasets["test"]

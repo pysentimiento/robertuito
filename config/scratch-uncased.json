@@ -4,7 +4,6 @@
 
     "pad_to_max_length": true,
     "max_seq_length": 128,
-    "tokenize_on_the_fly": true,
 
     "do_train": true,
     "do_eval": true,
@@ -19,6 +18,8 @@
     "logging_dir": "./logs/",
     "evaluation_strategy": "steps",
 
+    "use_datasets": false,
+    "tokenize_on_the_fly": true,
 
     "config_name": "models/twerto-base-uncased",
     "tokenizer_name": "models/twerto-base-uncased",
