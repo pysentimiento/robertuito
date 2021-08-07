@@ -112,3 +112,13 @@ sudo swapon /swapfile
 ```
 
 ## Correr finetuning
+
+### COLAB
+
+1. Go to `SSH` colab
+2. Connect to SSH instance
+3. Run
+```bash
+cd /content/finetune_vs_scratch
+python bin/xla_spawn.py --num_cores 8 bin/run_mlm.py /content/drive/MyDrive/models/scratch-uncased-colab.json
+```
