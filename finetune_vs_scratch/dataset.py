@@ -16,8 +16,10 @@ class BatchProcessedDataset(IterableDataset):
         self.limit = limit
 
     def __nextbatch(self, f):
-        nb = [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
-        return nb
+        next_batch = [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
+
+        tokenized_batch = self.tokenizer(next_batch, padding=self.padding, truncation=True, return_special_tokens_mask=True)
+        return tokenized_batch
 
     def __iter__(self):
         num_iter = 0
@@ -26,8 +28,7 @@ class BatchProcessedDataset(IterableDataset):
             with open(file_path) as f:
                 next_batch = self.__nextbatch(f)
                 while next_batch:
-                    tokenized_batch = self.tokenizer(next_batch, padding=self.padding, truncation=True, return_special_tokens_mask=True)
-                    for encoding in tokenized_batch.encodings:
+                    for encoding in next_batch.encodings:
                         if self.limit and num_iter >= self.limit:
                             return
                         yield {

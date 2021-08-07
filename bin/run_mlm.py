@@ -233,8 +233,8 @@ def main(seed):
     if data_args.train_dir:
         logger.info(f"Seed : {seed}")
         random.seed(seed)
-        train_files = sorted(glob(os.path.join(data_args.train_dir, "*.txt.*")))
-        eval_files = sorted(glob(os.path.join(data_args.eval_dir, "*.txt.*")))
+        train_files = sorted(glob(os.path.join(data_args.train_dir, "*.txt*")))
+        eval_files = sorted(glob(os.path.join(data_args.eval_dir, "*.txt*")))
 
         random.shuffle(train_files)
 
