@@ -270,8 +270,8 @@ def main():
     logger.setLevel(log_level)
 
     if data_args.train_dir:
-        train_files = sorted(glob(os.path.join(data_args.train_dir, "*.txt.*")))
-        eval_files = sorted(glob(os.path.join(data_args.eval_dir, "*.txt.*")))
+        train_files = sorted(glob(os.path.join(data_args.train_dir, "*.txt")))
+        eval_files = sorted(glob(os.path.join(data_args.eval_dir, "*.txt")))
 
         random.shuffle(train_files)
 
@@ -382,6 +382,7 @@ def main():
         if data_args.max_eval_samples is None or not type(data_args.max_eval_samples) is int:
             raise ValueError("Must provide max_eval_samples")
         logger.info(f"Tokenization batch size {data_args.tokenization_batch_size}")
+        import ipdb; ipdb.set_trace()
         train_dataset = BatchProcessedDataset(
             train_files, tokenizer, batch_size=data_args.tokenization_batch_size,
             padding=padding,
@@ -532,4 +533,4 @@ def _mp_fn(index):
 
 
 if __name__ == "__main__":
-    main(time.time())
+    main()
