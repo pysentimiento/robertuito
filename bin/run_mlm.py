@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from glob import glob
 import datasets
+import tempfile
 from datasets import load_dataset
 import random
 import transformers
@@ -49,7 +50,7 @@ from transformers import (
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
-from finetune_vs_scratch.dataset import DummyDataset, BatchProcessedDataset
+from finetune_vs_scratch.dataset import DistributedBatchProcessedDataset, DummyDataset, BatchProcessedDataset
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.9.0")
@@ -240,11 +241,11 @@ def main(seed):
 
     if data_args.train_dir:
         logger.info(f"Seed : {seed}")
-        random.seed(seed)
+        #random.seed(seed)
         train_files = sorted(glob(os.path.join(data_args.train_dir, "*.txt*")))
         eval_files = sorted(glob(os.path.join(data_args.eval_dir, "*.txt*")))
 
-        random.shuffle(train_files)
+        #random.shuffle(train_files)
 
         logger.info(f"First files: {train_files[:5]}")
 
@@ -268,6 +269,8 @@ def main(seed):
     # Set the verbosity to info of the Transformers logger (on main process only):
     logger.info(f"Training/evaluation parameters {training_args}")
 
+    print("World size: ", training_args.world_size)
+    print("Local Process index: ", training_args.local_process_index)
     # Detecting last checkpoint.
     last_checkpoint = None
     if os.path.isdir(training_args.output_dir) and training_args.do_train and not training_args.overwrite_output_dir:
@@ -373,15 +376,46 @@ def main(seed):
             if data_args.max_eval_samples is None or not type(data_args.max_eval_samples) is int:
                 raise ValueError("Must provide max_eval_samples")
             logger.info(f"Tokenization batch size {data_args.tokenization_batch_size}")
-            train_dataset = BatchProcessedDataset(
-                train_files, tokenizer, batch_size=data_args.tokenization_batch_size,
-                padding=padding,
-            )
-            eval_dataset = BatchProcessedDataset(
-                eval_files, tokenizer, batch_size=data_args.tokenization_batch_size,
-                padding=padding, limit=data_args.max_eval_samples
-            )
 
+            if training_args.world_size > 1:
+                """
+                Use distributed batch processed to make this faster
+                """
+
+                cache_file = f"mlm-cache.pkl"
+                test_cache_file = f"/home/jmperez/mlm-cache-test.pkl"
+                is_master = training_args.local_process_index == 0
+                logger.info("Using distributed dataset")
+                print("Cache file name: ", cache_file)
+                print("Is master?     : ", is_master)
+
+                train_dataset = DistributedBatchProcessedDataset(
+                    train_files, tokenizer, is_master=is_master, cache_file=cache_file,
+                    batch_size=data_args.tokenization_batch_size,
+                    padding=padding,
+                )
+                eval_dataset = DistributedBatchProcessedDataset(
+                    train_files, tokenizer, is_master=is_master, cache_file=test_cache_file,
+                    batch_size=data_args.tokenization_batch_size,
+                    padding=padding, limit=data_args.max_eval_samples
+                )
+
+            else:
+                logger.info("Using BatchProcessedDataset")
+                train_dataset = BatchProcessedDataset(
+                    train_files, tokenizer, batch_size=data_args.tokenization_batch_size,
+                    padding=padding,
+                )
+                eval_dataset = BatchProcessedDataset(
+                    eval_files, tokenizer, batch_size=data_args.tokenization_batch_size,
+                    padding=padding, limit=data_args.max_eval_samples
+                )
+    print("test")
+
+    from tqdm.auto import tqdm
+    for x in tqdm(zip(train_dataset, range(1000000))):
+        pass
+    return
 
     if data_args.max_seq_length is None:
         max_seq_length = tokenizer.model_max_length
