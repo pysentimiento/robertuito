@@ -9,9 +9,9 @@
     "do_train": true,
     "do_eval": true,
     "seed": 123456,
-    "max_steps": 225000,
+    "max_steps": 200000,
     "eval_steps": 6000,
-    "save_steps": 1500,
+    "save_steps": 2000,
 
     "max_eval_samples": 150000,
     "logging_steps": 200,
@@ -35,7 +35,6 @@
 
     "warmup_ratio": 0.06,
 
-    "resume_from_checkpoint": true,
     "ignore_data_skip": true,
 
     "per_device_train_batch_size": 128,
