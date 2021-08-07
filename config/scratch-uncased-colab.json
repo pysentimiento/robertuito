@@ -1,6 +1,6 @@
 {
-    "train_dir": "data/tweets/train",
-    "eval_dir": "data/tweets/test",
+    "train_dir": "/content/drive/MyDrive/tweets/final_tweets/train/",
+    "eval_dir": "/content/drive/MyDrive/tweets/final_tweets/test/",
 
     "pad_to_max_length": true,
     "max_seq_length": 128,
@@ -39,5 +39,5 @@
 
     "per_device_train_batch_size": 64,
     "per_device_eval_batch_size": 64,
-    "gradient_accumulation_steps": 8
+    "gradient_accumulation_steps": 4
 }
