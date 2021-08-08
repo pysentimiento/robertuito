@@ -18,6 +18,7 @@ ipywidgets = "^7.6.3"
 matplotlib = "^3.4.2"
 aiofiles = "^0.7.0"
 deepspeed = "^0.4.3"
+ujson = "^4.0.2"
 
 [tool.poetry.dev-dependencies]
 ipdb = "^0.13.9"
