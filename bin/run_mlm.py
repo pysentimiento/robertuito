@@ -241,11 +241,11 @@ def main(seed):
 
     if data_args.train_dir:
         logger.info(f"Seed : {seed}")
-        #random.seed(seed)
+        random.seed(seed)
         train_files = sorted(glob(os.path.join(data_args.train_dir, "*.txt*")))
         eval_files = sorted(glob(os.path.join(data_args.eval_dir, "*.txt*")))
 
-        #random.shuffle(train_files)
+        random.shuffle(train_files)
 
         logger.info(f"First files: {train_files[:5]}")
 
@@ -377,7 +377,7 @@ def main(seed):
                 raise ValueError("Must provide max_eval_samples")
             logger.info(f"Tokenization batch size {data_args.tokenization_batch_size}")
 
-            if training_args.world_size > 1:
+            if False and training_args.world_size > 1:
                 """
                 Use distributed batch processed to make this faster
                 """
@@ -410,12 +410,12 @@ def main(seed):
                     eval_files, tokenizer, batch_size=data_args.tokenization_batch_size,
                     padding=padding, limit=data_args.max_eval_samples
                 )
-    print("test")
+    # print("test")
 
-    from tqdm.auto import tqdm
-    for x in tqdm(zip(train_dataset, range(1000000))):
-        pass
-    return
+    # from tqdm.auto import tqdm
+    # for x in tqdm(zip(train_dataset, range(1000000))):
+    #     pass
+    # return
 
     if data_args.max_seq_length is None:
         max_seq_length = tokenizer.model_max_length

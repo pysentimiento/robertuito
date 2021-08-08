@@ -1,4 +1,5 @@
 import torch
+import itertools
 import logging
 import pickle
 import json
@@ -25,33 +26,64 @@ class BatchProcessedDataset(IterableDataset):
         self.padding = padding
         self.limit = limit
 
-    def _next_batch(self, f):
-        next_batch = [x.strip("\n") for _, x in zip(range(self.batch_size), f)]
+    @property
+    def lines(self):
+        """
+        Generator through all the lines
+        """
 
-        tokenized_batch = self.tokenizer(next_batch, padding=self.padding, truncation=True, return_special_tokens_mask=True)
-
-        encoded_batch = [{
-            "input_ids": encoding.ids,
-            "token_type_ids": encoding.type_ids,
-            "attention_mask": encoding.attention_mask,
-            "special_tokens_mask": encoding.special_tokens_mask
-        } for encoding in tokenized_batch.encodings ]
-
-        return encoded_batch
-
-    def __iter__(self):
-        num_iter = 0
-        for file_path in self.files:
+        for file_path in itertools.cycle(self.files):
             logger.info(f"Opening file {file_path}")
             with open(file_path) as f:
-                next_batch = self._next_batch(f)
-                while next_batch:
-                    for encoding in next_batch:
-                        if self.limit and num_iter >= self.limit:
-                            return
-                        yield encoding
-                        num_iter += 1
-                    next_batch = self._next_batch(f)
+                for line in f:
+                    stripped_line = line.strip("\n")
+                    if not stripped_line:
+                        continue
+                    yield stripped_line
+
+    @property
+    def batches(self):
+        """
+        Generator through all the batches
+        """
+        lines = self.lines
+
+        while True:
+            yield list(itertools.islice(lines, self.batch_size))
+
+
+    @property
+    def encoded_batches(self):
+        """
+        Generator through all encoded batches
+        """
+
+        for batch in self.batches:
+            tokenized_batch = self.tokenizer(
+                batch, padding=self.padding, truncation=True,
+                return_special_tokens_mask=True
+            )
+
+            encoded_batch = [{
+                "input_ids": encoding.ids,
+                "token_type_ids": encoding.type_ids,
+                "attention_mask": encoding.attention_mask,
+                "special_tokens_mask": encoding.special_tokens_mask
+            } for encoding in tokenized_batch.encodings ]
+
+            yield encoded_batch
+
+    def __iter__(self):
+        """
+        Iterate through samples
+        """
+        num_iter = 0
+        for encoded_batch in self.encoded_batches:
+            for encoding in encoded_batch:
+                if self.limit and num_iter >= self.limit:
+                    return
+                yield encoding
+                num_iter += 1
 
 class DistributedBatchProcessedDataset(BatchProcessedDataset):
     """
