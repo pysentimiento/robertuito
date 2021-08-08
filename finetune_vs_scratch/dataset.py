@@ -2,7 +2,7 @@ import torch
 import itertools
 import logging
 import pickle
-import json
+import ujson
 from torch.utils.data import IterableDataset, Dataset
 from transformers.file_utils import (
     is_torch_tpu_available,
@@ -105,40 +105,117 @@ class DistributedBatchProcessedDataset(BatchProcessedDataset):
         self.cache_file = cache_file
         self.is_master = is_master
         super().__init__(files, tokenizer, **kwargs)
+        if self.is_master:
+            self._encoded_batches = super().encoded_batches
 
-    def _next_batch(self, f):
+    @property
+    def encoded_batches(self):
+        """
+
+        """
         desc = "Distributed next batch"
-        try:
-            if not self.is_master:
-                # tell all replicas to wait
-                logger.info(f"waiting for the master to complete tokenization")
-                if is_torch_tpu_available():
-                    xm.rendezvous(desc)
-                else:
-                    torch.distributed.barrier()
-            else:
-                """
-                Master => Process data
-                """
-                next_batch  = super()._next_batch(f)
-                with open(self.cache_file, "wb") as pickle_file:
-                    logger.info(f"Saving to {self.cache_file}")
-                    pickle.dump(next_batch, pickle_file)
-        finally:
-            if self.is_master:
-                # the wait is over
-                logger.info(f"{self.process_index}: Master completed {desc}, releasing all replicas")
-                if is_torch_tpu_available():
-                    xm.rendezvous(desc)
-                else:
-                    torch.distributed.barrier()
-            else:
-                with open(self.cache_file, "rb") as pickle_file:
-                    logger.info(f"Reading from {self.cache_file}")
-                    next_batch = pickle.load(pickle_file)
 
-        return next_batch
+        while True:
+            try:
+                if not self.is_master:
+                    # tell all replicas to wait
+                    logger.debug(f"waiting for the master to complete tokenization")
+                    if is_torch_tpu_available():
+                        xm.rendezvous(desc)
+                    else:
+                        torch.distributed.barrier()
 
+                    with open(self.cache_file, "rb") as pickle_file:
+                        logger.debug(f"Reading from {self.cache_file}")
+                        next_batch = pickle.load(pickle_file)
+                else:
+                    """
+                    Master => Process data
+                    """
+                    next_batch  = next(self._encoded_batches)
+                    with open(self.cache_file, "wb") as pickle_file:
+                        logger.debug(f"Saving to {self.cache_file} -- len {len(next_batch)}")
+                        pickle.dump(next_batch, pickle_file)
+                        pickle_file.flush()
+            except Exception as e:
+                logger.info(f"EXCEPTION -- Es maestro? {self.is_master} -- {e}")
+                raise e
+            finally:
+                if self.is_master:
+                    # the wait is over
+                    logger.debug(f"Master completed {desc}, releasing all replicas")
+                    if is_torch_tpu_available():
+                        xm.rendezvous(desc)
+                    else:
+                        torch.distributed.barrier()
+
+            yield next_batch
+
+class JSONDistributedBatchProcessedDataset(BatchProcessedDataset):
+    """
+    A BatchProcessedDataset that takes care of distributed environment and tokenizes stuff just once
+    """
+
+    def __init__(self, files, tokenizer, is_master, cache_file, **kwargs):
+        """
+        Constructor
+
+
+        is_master: bool
+            Is this the master process? Master process tokenizes and saves each batch
+
+        cache_file: str (a path)
+            Where to save the cached tokenization
+        """
+        self.training_args = is_master
+        self.cache_file = cache_file
+        self.is_master = is_master
+        super().__init__(files, tokenizer, **kwargs)
+        if self.is_master:
+            self._encoded_batches = super().encoded_batches
+
+    @property
+    def encoded_batches(self):
+        """
+
+        """
+        desc = "Distributed next batch"
+
+        while True:
+            try:
+                if not self.is_master:
+                    # tell all replicas to wait
+                    logger.debug(f"waiting for the master to complete tokenization")
+                    if is_torch_tpu_available():
+                        xm.rendezvous(desc)
+                    else:
+                        torch.distributed.barrier()
+
+                    """
+                    Out of rendezvous => read data
+                    """
+                    with open(self.cache_file, "r") as load_file:
+                        logger.debug(f"Reading JSON from {self.cache_file}")
+                        next_batch = ujson.load(load_file)
+                else:
+                    """
+                    Master => Process data
+                    """
+                    next_batch  = next(self._encoded_batches)
+                    with open(self.cache_file, "w") as dump_file:
+                        logger.debug(f"Saving to {self.cache_file}")
+                        ujson.dump(next_batch, dump_file)
+            finally:
+                if self.is_master:
+                    # the wait is over
+                    logger.debug(f"Master completed {desc}, releasing all replicas")
+                    if is_torch_tpu_available():
+                        xm.rendezvous(desc)
+                    else:
+                        torch.distributed.barrier()
+
+            logger.debug(self.tokenizer.decode(next_batch[0]["input_ids"]))
+            yield next_batch
 
 class DummyDataset(IterableDataset):
     """

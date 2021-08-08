@@ -50,7 +50,7 @@ from transformers import (
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
-from finetune_vs_scratch.dataset import DistributedBatchProcessedDataset, DummyDataset, BatchProcessedDataset
+from finetune_vs_scratch.dataset import DistributedBatchProcessedDataset, DummyDataset, BatchProcessedDataset, JSONDistributedBatchProcessedDataset
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.9.0")
@@ -146,6 +146,15 @@ class DataTrainingArguments:
             "help": "Use `datasets` instead of our custom datasets",
         },
     )
+
+
+    use_cached_dataset: bool = field(
+        default=False,
+        metadata={
+            "help": "Use cached dataset on multiprocess setting",
+        },
+    )
+
 
     max_seq_length: Optional[int] = field(
         default=None,
@@ -377,24 +386,24 @@ def main(seed):
                 raise ValueError("Must provide max_eval_samples")
             logger.info(f"Tokenization batch size {data_args.tokenization_batch_size}")
 
-            if False and training_args.world_size > 1:
+            if training_args.world_size > 1 and data_args.use_cached_dataset:
                 """
                 Use distributed batch processed to make this faster
                 """
 
-                cache_file = f"mlm-cache.pkl"
-                test_cache_file = f"/home/jmperez/mlm-cache-test.pkl"
+                cache_file = f"mlm-cache.json"
+                test_cache_file = f"/home/jmperez/mlm-cache-test.json"
                 is_master = training_args.local_process_index == 0
                 logger.info("Using distributed dataset")
                 print("Cache file name: ", cache_file)
                 print("Is master?     : ", is_master)
 
-                train_dataset = DistributedBatchProcessedDataset(
+                train_dataset = JSONDistributedBatchProcessedDataset(
                     train_files, tokenizer, is_master=is_master, cache_file=cache_file,
                     batch_size=data_args.tokenization_batch_size,
                     padding=padding,
                 )
-                eval_dataset = DistributedBatchProcessedDataset(
+                eval_dataset = JSONDistributedBatchProcessedDataset(
                     train_files, tokenizer, is_master=is_master, cache_file=test_cache_file,
                     batch_size=data_args.tokenization_batch_size,
                     padding=padding, limit=data_args.max_eval_samples
@@ -410,12 +419,6 @@ def main(seed):
                     eval_files, tokenizer, batch_size=data_args.tokenization_batch_size,
                     padding=padding, limit=data_args.max_eval_samples
                 )
-    # print("test")
-
-    # from tqdm.auto import tqdm
-    # for x in tqdm(zip(train_dataset, range(1000000))):
-    #     pass
-    # return
 
     if data_args.max_seq_length is None:
         max_seq_length = tokenizer.model_max_length
