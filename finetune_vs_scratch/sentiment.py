@@ -55,7 +55,7 @@ def load_datasets(data_path=None, limit=None):
 
 
 def run(
-    model_name, device, data_path=None, limit=None, epochs=5, batch_size=32,
+    model_name, device, data_path=None, limit=None, epochs=5, batch_size=32, max_length=128,
     eval_batch_size=16, accumulation_steps=1, use_dynamic_padding=True, **kwargs):
     """
     Run sentiment analysis experiments
@@ -64,7 +64,12 @@ def run(
 
 
 
-    model, tokenizer = load_model_and_tokenizer(model_name, num_labels=len(label2id), device=device)
+    model, tokenizer = load_model_and_tokenizer(
+        model_name,
+        num_labels=len(label2id),
+        device=device,
+        max_length=max_length
+    )
     train_dataset, dev_dataset, test_dataset = load_datasets(
         data_path=data_path, limit=limit
     )

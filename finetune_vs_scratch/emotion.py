@@ -81,7 +81,7 @@ def load_datasets(train_path=None, test_path=None, limit=None,random_state=2021)
 
 def run(
     model_name, device, train_path=None, test_path=None, limit=None, epochs=5, batch_size=32,
-    eval_batch_size=16, accumulation_steps=1, use_dynamic_padding=True, **kwargs):
+    eval_batch_size=16, max_length=128, accumulation_steps=1, use_dynamic_padding=True, **kwargs):
     """
     Run emotion experiments
     """
@@ -89,7 +89,7 @@ def run(
 
 
 
-    model, tokenizer = load_model_and_tokenizer(model_name, num_labels=len(label2id), device=device)
+    model, tokenizer = load_model_and_tokenizer(model_name, num_labels=len(label2id), device=device, max_length=max_length)
     train_dataset, dev_dataset, test_dataset = load_datasets(train_path=train_path, test_path=test_path, limit=limit)
 
     class_weight = torch.Tensor(

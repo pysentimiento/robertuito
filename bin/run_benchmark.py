@@ -15,7 +15,7 @@ tasks = {
     "emotion": run_emotion,
 }
 
-def run_benchmark(model_name: str, times: int, output_path: str, limit: int = None, max_epochs: int = None, task=None):
+def run_benchmark(model_name: str, times: int, output_path: str, limit: int = None, max_epochs: int = None, task=None, max_length=None):
     """
     Run benchmark
 
@@ -49,6 +49,7 @@ def run_benchmark(model_name: str, times: int, output_path: str, limit: int = No
     task_args = {
         "device": device,
         "limit": limit,
+        "max_length": max_length
     }
 
     if max_epochs:

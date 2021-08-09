@@ -69,7 +69,7 @@ def load_datasets(train_path=None, dev_path=None, test_path=None, limit=None,ran
 
 
 def run(
-    model_name, device, limit=None, epochs=5, batch_size=32,
+    model_name, device, limit=None, epochs=5, batch_size=32, max_length=None,
     eval_batch_size=16, accumulation_steps=1, use_dynamic_padding=True, **kwargs):
     """
     Run sentiment analysis experiments
@@ -77,7 +77,13 @@ def run(
     print("Running hatEval experiments")
 
 
-    model, tokenizer = load_model_and_tokenizer(model_name, num_labels=len(label2id), device=device)
+    model, tokenizer = load_model_and_tokenizer(
+        model_name,
+        num_labels=len(label2id),
+        device=device,
+        max_length=max_length
+    )
+
     train_dataset, dev_dataset, test_dataset = load_datasets(
         limit=limit
     )
