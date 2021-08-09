@@ -246,6 +246,7 @@ def main(seed):
     This seed is only to shuffle lists
     """
     log_level = training_args.get_process_log_level()
+    print(f"Logger level: {log_level}")
     logger.setLevel(log_level)
 
     if data_args.train_dir:
@@ -257,6 +258,7 @@ def main(seed):
         random.shuffle(train_files)
 
         logger.info(f"First files: {train_files[:5]}")
+        logger.info(f"Eval files: {eval_files[:5]}")
 
 
 
@@ -394,17 +396,21 @@ def main(seed):
                 cache_file = f"mlm-cache.json"
                 test_cache_file = f"/home/jmperez/mlm-cache-test.json"
                 is_master = training_args.local_process_index == 0
-                logger.info("Using distributed dataset")
-                print("Cache file name: ", cache_file)
-                print("Is master?     : ", is_master)
+
+                logger.info(f"Using distributed dataset")
+                logger.info(f"Cache file name: {cache_file}")
+                logger.info(f"Test Cache file name: {test_cache_file}")
+                logger.info(f"Is master?     : {is_master}")
 
                 train_dataset = JSONDistributedBatchProcessedDataset(
                     train_files, tokenizer, is_master=is_master, cache_file=cache_file,
                     batch_size=data_args.tokenization_batch_size,
                     padding=padding,
                 )
-                eval_dataset = JSONDistributedBatchProcessedDataset(
-                    train_files, tokenizer, is_master=is_master, cache_file=test_cache_file,
+                # I use the normal option because
+                # for some reason it won't work because of Trainer's dataloaders
+                eval_dataset = BatchProcessedDataset(
+                    eval_files, tokenizer,
                     batch_size=data_args.tokenization_batch_size,
                     padding=padding, limit=data_args.max_eval_samples
                 )
@@ -419,6 +425,7 @@ def main(seed):
                     eval_files, tokenizer, batch_size=data_args.tokenization_batch_size,
                     padding=padding, limit=data_args.max_eval_samples
                 )
+
 
     if data_args.max_seq_length is None:
         max_seq_length = tokenizer.model_max_length
@@ -491,7 +498,6 @@ def main(seed):
         data_collator=data_collator,
     )
 
-    # Training
     if training_args.do_train:
         checkpoint = None
         if training_args.resume_from_checkpoint is not None:

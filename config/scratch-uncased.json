@@ -16,6 +16,7 @@
     "logging_steps": 200,
     "logging_strategy": "steps",
     "logging_dir": "./logs/",
+
     "evaluation_strategy": "steps",
 
     "use_datasets": false,
@@ -28,11 +29,13 @@
 
     "tokenization_batch_size": 2048,
 
+    "log_level": "info",
+
     "weight_decay": 0.01,
     "adam_beta1": 0.9,
     "adam_beta2": 0.98,
-    "adam_epsilon": 1e-6,
     "learning_rate": 6e-4,
+    "adam_epsilon": 1e-6,
     "max_grad_norm": 0,
 
     "warmup_ratio": 0.06,
