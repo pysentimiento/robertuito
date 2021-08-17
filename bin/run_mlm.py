@@ -356,6 +356,23 @@ def main(seed):
     # download the dataset.
     padding = "max_length" if data_args.pad_to_max_length else False
 
+    if data_args.max_seq_length is None:
+        max_seq_length = tokenizer.model_max_length
+        if max_seq_length > 1024:
+            logger.warning(
+                f"The tokenizer picked seems to have a very large `model_max_length` ({tokenizer.model_max_length}). "
+                "Picking 1024 instead. You can change that default value by passing --max_seq_length xxx."
+            )
+            max_seq_length = 1024
+    else:
+        if data_args.max_seq_length > tokenizer.model_max_length:
+            logger.warning(
+                f"The max_seq_length passed ({data_args.max_seq_length}) is larger than the maximum length for the"
+                f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}."
+            )
+        max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
+
+
     if data_args.dummy_dataset:
         logger.info("Dummy dataset")
         train_dataset = DummyDataset(
@@ -409,11 +426,16 @@ def main(seed):
                 )
                 # I use the normal option because
                 # for some reason it won't work because of Trainer's dataloaders
-                eval_dataset = BatchProcessedDataset(
-                    eval_files, tokenizer,
-                    batch_size=data_args.tokenization_batch_size,
-                    padding=padding, limit=data_args.max_eval_samples
-                )
+
+                # TODO: I limit this to 4; move
+                eval_dataset = load_dataset("text", data_files={"test": eval_files[:5]})["test"]
+
+                eval_dataset = eval_dataset.select(range(data_args.max_eval_samples))
+                # eval_dataset = BatchProcessedDataset(
+                #     eval_files, tokenizer,
+                #     batch_size=data_args.tokenization_batch_size,
+                #     padding=padding, limit=data_args.max_eval_samples
+                # )
 
             else:
                 logger.info("Using BatchProcessedDataset")
@@ -427,38 +449,23 @@ def main(seed):
                 )
 
 
-    if data_args.max_seq_length is None:
-        max_seq_length = tokenizer.model_max_length
-        if max_seq_length > 1024:
-            logger.warning(
-                f"The tokenizer picked seems to have a very large `model_max_length` ({tokenizer.model_max_length}). "
-                "Picking 1024 instead. You can change that default value by passing --max_seq_length xxx."
-            )
-            max_seq_length = 1024
-    else:
-        if data_args.max_seq_length > tokenizer.model_max_length:
-            logger.warning(
-                f"The max_seq_length passed ({data_args.max_seq_length}) is larger than the maximum length for the"
-                f"model ({tokenizer.model_max_length}). Using max_seq_length={tokenizer.model_max_length}."
-            )
-        max_seq_length = min(data_args.max_seq_length, tokenizer.model_max_length)
+    def tokenize_function(examples):
+        # Remove empty lines
+        examples["text"] = [
+            line for line in examples["text"] if len(line) > 0 and not line.isspace()
+        ]
+        return tokenizer(
+            examples["text"],
+            padding=padding,
+            truncation=True,
+            max_length=max_seq_length,
+            # We use this option because DataCollatorForLanguageModeling (see below) is more efficient when it
+            # receives the `special_tokens_mask`.
+            return_special_tokens_mask=True,
+        )
 
     if data_args.use_datasets:
         logger.info("Using datasets library")
-        def tokenize_function(examples):
-            # Remove empty lines
-            examples["text"] = [
-                line for line in examples["text"] if len(line) > 0 and not line.isspace()
-            ]
-            return tokenizer(
-                examples["text"],
-                padding=padding,
-                truncation=True,
-                max_length=max_seq_length,
-                # We use this option because DataCollatorForLanguageModeling (see below) is more efficient when it
-                # receives the `special_tokens_mask`.
-                return_special_tokens_mask=True,
-            )
 
         if data_args.tokenize_on_the_fly:
             raw_datasets.set_transform(tokenize_function)
@@ -472,12 +479,25 @@ def main(seed):
                     batched=True,
                     num_proc=data_args.preprocessing_num_workers,
                     remove_columns=["text"],
-                    load_from_cache_file=not data_args.overwrite_cache,
+                    #load_from_cache_file=not data_args.overwrite_cache,
                     desc="Running tokenizer on dataset line_by_line",
                 )
 
             train_dataset = tokenized_datasets["train"]
             eval_dataset = tokenized_datasets["test"]
+    elif data_args.use_cached_dataset:
+        logger.info("Tokenizing test dataset")
+
+        with training_args.main_process_first(desc="dataset map tokenization"):
+            eval_dataset = eval_dataset.map(
+                tokenize_function,
+                batched=True,
+                num_proc=data_args.preprocessing_num_workers,
+                remove_columns=["text"],
+                #load_from_cache_file=not data_args.overwrite_cache,
+                desc="Running tokenizer on test dataset line_by_line",
+            )
+
 
     # Data collator
     # This one will take care of randomly masking the tokens.

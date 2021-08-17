@@ -27,14 +27,14 @@
     "tokenizer_name": "models/twerto-base-cased",
     "output_dir": "models/twerto-base-cased-trained",
 
-    "tokenization_batch_size": 2048,
+    "tokenization_batch_size": 1024,
 
     "log_level": "info",
 
     "weight_decay": 0.01,
     "adam_beta1": 0.9,
     "adam_beta2": 0.98,
-    "learning_rate": 6e-4,
+    "learning_rate": 4e-4,
     "adam_epsilon": 1e-6,
     "max_grad_norm": 0,
 
