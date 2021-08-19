@@ -33,7 +33,7 @@ class BatchProcessedDataset(IterableDataset):
         """
 
         for file_path in itertools.cycle(self.files):
-            logger.debug(f"Opening file {file_path}")
+            logger.info(f"Opening file {file_path}")
             with open(file_path) as f:
                 for line in f:
                     stripped_line = line.strip("\n")

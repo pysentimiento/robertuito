@@ -8,8 +8,8 @@
     "do_train": true,
     "do_eval": true,
     "seed": 123456,
-    "max_steps": 200000,
-    "eval_steps": 3000,
+    "max_steps": 600000,
+    "eval_steps": 1000,
     "save_steps": 2000,
 
     "max_eval_samples": 600000,
@@ -23,18 +23,18 @@
     "use_cached_dataset": true,
     "tokenize_on_the_fly": true,
 
-    "config_name": "models/twerto-base-uncased",
-    "tokenizer_name": "models/twerto-base-uncased",
-    "output_dir": "models/twerto-base-uncased-trained",
+    "config_name": "models/twerto-base-cased",
+    "tokenizer_name": "models/twerto-base-cased",
+    "output_dir": "models/twerto-base-cased-trained",
 
-    "tokenization_batch_size": 2048,
+    "tokenization_batch_size": 1024,
 
     "log_level": "info",
 
     "weight_decay": 0.01,
     "adam_beta1": 0.9,
     "adam_beta2": 0.98,
-    "learning_rate": 6e-4,
+    "learning_rate": 4e-4,
     "adam_epsilon": 1e-6,
     "max_grad_norm": 0,
 
