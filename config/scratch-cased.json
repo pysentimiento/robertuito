@@ -9,11 +9,11 @@
     "do_eval": true,
     "seed": 123456,
     "max_steps": 600000,
-    "eval_steps": 3000,
-    "save_steps": 1000,
+    "eval_steps": 4500,
+    "save_steps": 1500,
 
-    "max_eval_samples": 1000000,
-    "logging_steps": 100,
+    "max_eval_samples": 1500000,
+    "logging_steps": 250,
     "logging_strategy": "steps",
     "logging_dir": "./logs/",
 
