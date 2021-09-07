@@ -3,16 +3,16 @@ import torch
 import fire
 import pandas as pd
 import json
-from finetune_vs_scratch.sentiment import run as run_sentiment
-from finetune_vs_scratch.emotion import run as run_emotion
-from finetune_vs_scratch.context_hate import run as run_context_hate
-from finetune_vs_scratch.hate import run as run_hateval
+from finetune_vs_scratch import (
+    sentiment, emotion, context_hate, hate, irony
+)
 
 tasks = {
-    "context_hate": run_context_hate,
-    "hate": run_hateval,
-    "sentiment": run_sentiment,
-    "emotion": run_emotion,
+    "context_hate": context_hate.run,
+    "hate": hate.run,
+    "sentiment": sentiment.run,
+    "emotion": emotion.run,
+    "irony": irony.run,
 }
 
 def run_benchmark(model_name: str, times: int, output_path: str, limit: int = None, max_epochs: int = None, task=None, max_length=None):
