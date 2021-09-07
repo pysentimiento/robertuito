@@ -46,19 +46,33 @@ def run_benchmark(model_name: str, times: int, output_path: str, limit: int = No
     print(f"Using {device}", "\n"*3)
     print(("*"*80+'\n')*3)
 
+
+
     task_args = {
         "device": device,
         "limit": limit,
-        "max_length": max_length
     }
+
+    if max_length:
+        task_args["max_length"] = max_length
 
     if max_epochs:
         task_args["epochs"] = max_epochs
 
     print(task_args)
 
-    results = {k: [] for k in tasks}
-    results["model_name"] = model_name
+    if os.path.exists(output_path):
+        if not task:
+            print("If output already exists, please provide a new task")
+            sys.exit(1)
+        else:
+            with open(output_path, "r") as f:
+                results = json.load(f)
+
+            results[task] = []
+    else:
+        results = {k: [] for k in tasks}
+        results["model_name"] = model_name
 
     for i in range(times):
         print(("="*80+'\n')*3)

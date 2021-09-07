@@ -15,6 +15,14 @@ Test the benchmark running
 ./smoke_test.sh
 ```
 
+To run benchmarks
+
+```bash
+python bin/run_benchmark.py <model_name> --times 5 --output_path <output_path>
+```
+
+Check [RUN_BENCHMARKS](RUN_BENCHMARKS.md) for all experiments
+
 ### TPU Training
 
 1. Generate arrow dataset
