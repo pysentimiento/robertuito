@@ -69,7 +69,7 @@ def load_datasets(train_path=None, dev_path=None, test_path=None, limit=None,ran
 
 
 def run(
-    model_name, device, limit=None, epochs=5, batch_size=32, max_length=None,
+    model_name, device, limit=None, epochs=5, batch_size=32, max_length=128,
     eval_batch_size=16, accumulation_steps=1, use_dynamic_padding=True, **kwargs):
     """
     Run sentiment analysis experiments
