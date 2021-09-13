@@ -1,52 +1,49 @@
-
 """
-Run hatEval experiments
+Run sentiment experiments
 """
+import torch
 import pandas as pd
 import os
 import pathlib
-from .preprocessing import preprocess
-from .model import load_model_and_tokenizer
 from datasets import Dataset, Value, ClassLabel, Features
-from pysentimiento.emotion.datasets import id2label, label2id
-from .preprocessing import preprocess, special_tokens
+from sklearn.model_selection import train_test_split
+from .model import load_model_and_tokenizer
+from .preprocessing import preprocess
 from .experiments import run_experiment
 
+
+project_dir = pathlib.Path(os.path.dirname(__file__)).parent
+data_dir = os.path.join(project_dir, "data")
+sentiment_dir = os.path.join(data_dir, "irony")
+
 id2label = {
-    0: 'ok',
-    1: 'hateful',
+    0: 'not ironic',
+    1: 'ironic',
 }
 
 label2id = {v:k for k, v in id2label.items()}
 
-project_dir = pathlib.Path(os.path.dirname(__file__)).parent
-data_dir = os.path.join(project_dir, "data", "hate")
 
-
-def load_datasets(train_path=None, dev_path=None, test_path=None, limit=None,random_state=2021):
+def load_datasets(data_path=None, limit=None, random_state=20202021):
     """
-    Load emotion recognition datasets
+    Load sentiment datasets
     """
-
-    train_path = train_path or os.path.join(data_dir, "hateval2019_es_train.csv")
-    dev_path = dev_path or os.path.join(data_dir, "hateval2019_es_dev.csv")
-    test_path = test_path or os.path.join(data_dir, "hateval2019_es_test.csv")
-
-
-    train_df = pd.read_csv(train_path)
-    dev_df = pd.read_csv(dev_path)
-    test_df = pd.read_csv(test_path)
-
-
-    for df in [train_df, dev_df, test_df]:
-        df["label"] = df["HS"].astype(int)
-        df["text"] = df["text"].apply(preprocess)
-
-
     features = Features({
         'text': Value('string'),
-        'label': ClassLabel(num_classes=len(id2label), names=[id2label[k] for k in sorted(id2label.keys())])
+        'lang': Value('string'),
+        'label': ClassLabel(num_classes=2)
     })
+    data_path = data_path or os.path.join(sentiment_dir, "irosva_dataset.csv")
+    df = pd.read_csv(data_path)
+    df["label"] = df["is_ironic"]
+    df["text"] = df["text"].apply(lambda x: preprocess(x))
+    train_df = df[df["split"] == "train"]
+    test_df = df[df["split"] == "test"]
+
+    train_df, dev_df = train_test_split(
+        train_df, stratify=train_df["label"], random_state=random_state,
+        test_size=0.25,
+    )
 
     train_dataset = Dataset.from_pandas(train_df, features=features)
     dev_dataset = Dataset.from_pandas(dev_df, features=features)
@@ -69,12 +66,13 @@ def load_datasets(train_path=None, dev_path=None, test_path=None, limit=None,ran
 
 
 def run(
-    model_name, device, limit=None, epochs=5, batch_size=32, max_length=128,
+    model_name, device, data_path=None, limit=None, epochs=5, batch_size=32, max_length=128,
     eval_batch_size=16, accumulation_steps=1, use_dynamic_padding=True, **kwargs):
     """
     Run sentiment analysis experiments
     """
-    print("Running hatEval experiments")
+    print("Running Irony Detection experiments")
+
 
 
     model, tokenizer = load_model_and_tokenizer(
@@ -83,9 +81,8 @@ def run(
         device=device,
         max_length=max_length
     )
-
     train_dataset, dev_dataset, test_dataset = load_datasets(
-        limit=limit
+        data_path=data_path, limit=limit
     )
 
 
