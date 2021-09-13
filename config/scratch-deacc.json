@@ -9,7 +9,7 @@
     "do_eval": true,
     "seed": 123456,
     "max_steps": 600000,
-    "eval_steps": 4500,
+    "eval_steps": 6000,
     "save_steps": 1500,
 
     "max_eval_samples": 1500000,
