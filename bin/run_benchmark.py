@@ -1,7 +1,6 @@
 import os
 import torch
 import fire
-import pandas as pd
 import json
 from finetune_vs_scratch import (
     sentiment, emotion, context_hate, hate, irony
@@ -62,14 +61,8 @@ def run_benchmark(model_name: str, times: int, output_path: str, limit: int = No
     print(task_args)
 
     if os.path.exists(output_path):
-        if not task:
-            print("If output already exists, please provide a new task")
-            sys.exit(1)
-        else:
-            with open(output_path, "r") as f:
-                results = json.load(f)
-
-            results[task] = []
+        with open(output_path, "r") as f:
+            results = json.load(f)
     else:
         results = {k: [] for k in tasks}
         results["model_name"] = model_name
@@ -89,8 +82,8 @@ def run_benchmark(model_name: str, times: int, output_path: str, limit: int = No
             for k, v in task_results.items():
                 print(f"{k} = {v:.4f}")
 
-    with open(output_path, "w+") as f:
-        json.dump(results, f, indent=4)
+        with open(output_path, "w+") as f:
+            json.dump(results, f, indent=4)
 
     print(f"Results saved to {output_path}")
 

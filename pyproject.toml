@@ -23,6 +23,7 @@ ujson = "^4.0.2"
 [tool.poetry.dev-dependencies]
 ipdb = "^0.13.9"
 tensorboard = "^2.5.0"
+seaborn = "^0.11.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

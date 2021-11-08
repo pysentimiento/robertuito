@@ -1,6 +1,7 @@
 import os
 import re
 import fire
+import json
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -14,10 +15,12 @@ def run_all(times=10):
         #("finiteautomata/robertuito-base-deacc", "robertuito-deacc.json"),
         #("bertin-project/bertin-roberta-base-spanish", "bertin.json"),
         #("BSC-TeMU/roberta-base-bne", "roberta-bne.json"),
+        ("dccuchile/bert-base-spanish-wwm-uncased", "beto-uncased.json"),
         ("models/beto-uncased-2500", "beto-uncased-2500.json"),
         ("models/beto-uncased-5000", "beto-uncased-5000.json"),
         ("models/beto-uncased-10000", "beto-uncased-10000.json"),
         ("models/beto-uncased-20000", "beto-uncased-20000.json"),
+        ("dccuchile/bert-base-spanish-wwm-cased", "beto-cased.json"),
         ("models/beto-cased-2500", "beto-cased-2500.json"),
         ("models/beto-cased-5000", "beto-cased-5000.json"),
         ("models/beto-cased-10000", "beto-cased-10000.json"),
@@ -31,10 +34,20 @@ def run_all(times=10):
         output_path=f"output/{output_path}"
 
         if os.path.exists(output_path):
-            logger.info(f"Skipping {model_name}")
-            continue
+            with open(output_path) as f:
+                report = json.load(f)
 
-        cmd = f"python bin/run_benchmark.py {model_name} {times} {output_path} --max_length 128"
+            run_times = len(report["hate"])
+            if run_times >= times:
+                logger.info(f"Skipping model: {model_name}")
+                continue
+            else:
+                logger.info(f"Found {run_times}")
+                effective_times = times - run_times
+        else:
+            effective_times = times
+
+        cmd = f"python bin/run_benchmark.py {model_name} {effective_times} {output_path} --max_length 128"
 
         os.system(cmd)
 
