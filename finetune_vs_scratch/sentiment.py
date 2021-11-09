@@ -20,7 +20,7 @@ data_dir = os.path.join(project_dir, "data")
 sentiment_dir = os.path.join(data_dir, "sentiment")
 
 
-def load_datasets(data_path=None, limit=None):
+def load_datasets(data_path=None, limit=None, preprocess_data=True, preprocess_args=None):
     """
     Load sentiment datasets
     """
@@ -32,7 +32,10 @@ def load_datasets(data_path=None, limit=None):
     data_path = data_path or os.path.join(sentiment_dir, "tass.csv")
     df = pd.read_csv(data_path)
     df["label"] = df["polarity"].apply(lambda x: label2id[x])
-    df["text"] = df["text"].apply(lambda x: preprocess(x))
+
+    if preprocess_data:
+        preprocess_fn = lambda x: preprocess(x, preprocess_args=preprocess_args)
+        df["text"] = df["text"].apply(preprocess_fn)
 
     train_dataset = Dataset.from_pandas(df[df["split"] == "train"], features=features)
     dev_dataset = Dataset.from_pandas(df[df["split"] == "dev"], features=features)

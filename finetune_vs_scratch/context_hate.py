@@ -54,7 +54,7 @@ def serialize(article, comment):
 
 
 
-def load_datasets(train_path=None, test_path=None, limit=None):
+def load_datasets(train_path=None, test_path=None, limit=None, preprocess_data=True, preprocess_args=None):
     """
     Load and return datasets
 
@@ -88,10 +88,11 @@ def load_datasets(train_path=None, test_path=None, limit=None):
     """
     Apply preprocessing: convert usernames to "usuario" and urls to URL
     """
-
-    for df in [train_df, dev_df, test_df]:
-        df["text"] = df["text"].parallel_apply(preprocess)
-        df["title"] = df["title"].parallel_apply(preprocess)
+    if preprocess_data:
+        preprocess_fn = lambda x: preprocess(x, preprocess_args=preprocess_args)
+        for df in [train_df, dev_df, test_df]:
+            df["text"] = df["text"].parallel_apply(preprocess_fn)
+            df["title"] = df["title"].parallel_apply(preprocess_fn)
 
     features = Features({
         'id': Value('uint64'),

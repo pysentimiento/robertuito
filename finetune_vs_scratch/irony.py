@@ -24,7 +24,7 @@ id2label = {
 label2id = {v:k for k, v in id2label.items()}
 
 
-def load_datasets(data_path=None, limit=None, random_state=20202021):
+def load_datasets(data_path=None, limit=None, random_state=20202021, preprocess_data=True, preprocess_args=None):
     """
     Load sentiment datasets
     """
@@ -36,7 +36,11 @@ def load_datasets(data_path=None, limit=None, random_state=20202021):
     data_path = data_path or os.path.join(sentiment_dir, "irosva_dataset.csv")
     df = pd.read_csv(data_path)
     df["label"] = df["is_ironic"]
-    df["text"] = df["text"].apply(lambda x: preprocess(x))
+
+
+    if preprocess_data:
+        preprocess_fn = lambda x: preprocess(x, preprocess_args=preprocess_args)
+        df["text"] = df["text"].apply(preprocess_fn)
     train_df = df[df["split"] == "train"]
     test_df = df[df["split"] == "test"]
 

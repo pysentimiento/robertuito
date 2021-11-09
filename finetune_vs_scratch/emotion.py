@@ -33,7 +33,7 @@ data_dir = os.path.join(project_dir, "data")
 emotion_dir = os.path.join(data_dir, "emotion")
 
 
-def load_datasets(train_path=None, test_path=None, limit=None,random_state=2021):
+def load_datasets(train_path=None, test_path=None, limit=None,random_state=2021, preprocess_data=True, preprocess_args=None):
     """
     Load emotion recognition datasets
     """
@@ -46,11 +46,14 @@ def load_datasets(train_path=None, test_path=None, limit=None,random_state=2021)
     train_df, dev_df = train_test_split(train_df, stratify=train_df["label"], random_state=random_state)
 
 
+    preprocess_fn = lambda x: preprocess(x, preprocess_args=preprocess_args)
     for df in [train_df, dev_df, test_df]:
         for label, idx in label2id.items():
             df.loc[df["label"] == label, "label"] = idx
         df["label"] = df["label"].astype(int)
-        df["text"] = df["text"].apply(preprocess)
+
+        if preprocess_data:
+            df["text"] = df["text"].apply(preprocess_fn)
 
 
     features = Features({

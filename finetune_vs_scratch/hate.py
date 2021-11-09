@@ -23,7 +23,7 @@ project_dir = pathlib.Path(os.path.dirname(__file__)).parent
 data_dir = os.path.join(project_dir, "data", "hate")
 
 
-def load_datasets(train_path=None, dev_path=None, test_path=None, limit=None,random_state=2021):
+def load_datasets(train_path=None, dev_path=None, test_path=None, limit=None, preprocess_data=True, preprocess_args=None, random_state=2021):
     """
     Load emotion recognition datasets
     """
@@ -38,9 +38,11 @@ def load_datasets(train_path=None, dev_path=None, test_path=None, limit=None,ran
     test_df = pd.read_csv(test_path)
 
 
+    preprocess_fn = lambda x: preprocess(x, preprocess_args=preprocess_args)
     for df in [train_df, dev_df, test_df]:
         df["label"] = df["HS"].astype(int)
-        df["text"] = df["text"].apply(preprocess)
+        if preprocess_data:
+            df["text"] = df["text"].apply(preprocess_fn)
 
 
     features = Features({
