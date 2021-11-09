@@ -10,11 +10,11 @@ logger = logging.getLogger(__name__)
 
 def run_all(times=10):
     models = [
-        #("finiteautomata/robertuito-base-uncased", "robertuito-uncased.json"),
-        #("finiteautomata/robertuito-base-cased", "robertuito-cased.json"),
-        #("finiteautomata/robertuito-base-deacc", "robertuito-deacc.json"),
-        #("bertin-project/bertin-roberta-base-spanish", "bertin.json"),
-        #("BSC-TeMU/roberta-base-bne", "roberta-bne.json"),
+        ("finiteautomata/robertuito-base-uncased", "robertuito-uncased.json"),
+        ("finiteautomata/robertuito-base-cased", "robertuito-cased.json"),
+        ("finiteautomata/robertuito-base-deacc", "robertuito-deacc.json"),
+        ("bertin-project/bertin-roberta-base-spanish", "bertin.json"),
+        ("BSC-TeMU/roberta-base-bne", "roberta-bne.json"),
         ("dccuchile/bert-base-spanish-wwm-uncased", "beto-uncased.json"),
         ("models/beto-uncased-2500", "beto-uncased-2500.json"),
         ("models/beto-uncased-5000", "beto-uncased-5000.json"),
