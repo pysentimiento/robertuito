@@ -71,14 +71,8 @@ To run benchmarks
 python bin/run_benchmark.py <model_name> --times 5 --output_path <output_path>
 ```
 
-Check [RUN_BENCHMARKS](RUN_BENCHMARKS.md) for all experiments
+Check [RUN_BENCHMARKS](docs/RUN_BENCHMARKS.md) for all experiments
 
-### Smoke test
-Test the benchmark running
-
-```
-./smoke_test.sh
-```
 ## Citation
 
 If you use *RoBERTuito*, please cite our paper:
