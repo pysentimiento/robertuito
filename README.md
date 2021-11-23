@@ -71,7 +71,6 @@ To run benchmarks
 python bin/run_benchmark.py <model_name> --times 5 --output_path <output_path>
 ```
 
-Check [RUN_BENCHMARKS](docs/RUN_BENCHMARKS.md) for all experiments
 
 ## Citation
 
