@@ -44,7 +44,7 @@ from pysentimiento.preprocessing import preprocess_tweet
 tokenizer = AutoTokenizer.from_pretrained('pysentimiento/robertuito-base-cased')
 
 text = "Esto es un tweet estoy usando #Robertuito @pysentimiento 🤣"
-preprocessed_text = preprocess_tweet(text, ha)
+preprocessed_text = preprocess_tweet(text)
 
 tokenizer.tokenize(preprocessed_text)
 # ['<s>','▁Esto','▁es','▁un','▁tweet','▁estoy','▁usando','▁','▁hashtag','▁','▁ro','bert','uito','▁@usuario','▁','▁emoji','▁cara','▁revolviéndose','▁de','▁la','▁risa','▁emoji','</s>']
