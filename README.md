@@ -1,7 +1,8 @@
 # RoBERTuito
 ## A pre-trained language model for social media text in Spanish
 
-[**READ THE FULL PAPER**](https://arxiv.org/abs/2111.09453)
+[**READ THE PAPER**](https://arxiv.org/abs/2111.09453)
+
 [Github Repository](https://github.com/pysentimiento/robertuito)
 
 *RoBERTuito* is a pre-trained language model for user-generated content in Spanish, trained following RoBERTa guidelines on 500 million tweets. *RoBERTuito* comes in 3 flavors: cased, uncased, and uncased+deaccented.
