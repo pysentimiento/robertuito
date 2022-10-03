@@ -78,12 +78,15 @@ python bin/run_benchmark.py <model_name> --times 5 --output_path <output_path>
 If you use *RoBERTuito*, please cite our paper:
 
 ```bibtex
-@misc{perez2021robertuito,
-      title={RoBERTuito: a pre-trained language model for social media text in Spanish},
-      author={Juan Manuel Pérez and Damián A. Furman and Laura Alonso Alemany and Franco Luque},
-      year={2021},
-      eprint={2111.09453},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
+@inproceedings{perez2022robertuito,
+  author    = {Pérez, Juan Manuel  and  Furman, Damián Ariel  and  Alonso Alemany, Laura  and  Luque, Franco M.},
+  title     = {RoBERTuito: a pre-trained language model for social media text in Spanish},
+  booktitle = {Proceedings of the Language Resources and Evaluation Conference},
+  month     = {June},
+  year      = {2022},
+  address   = {Marseille, France},
+  publisher = {European Language Resources Association},
+  pages     = {7235--7243},
+  url       = {https://aclanthology.org/2022.lrec-1.785}
 }
 ```
