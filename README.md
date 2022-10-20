@@ -1,4 +1,9 @@
 # RoBERTuito
+
+<p>
+<a href="https://console.tiyaro.ai/explore?q=pysentimiento/robertuito-&pub=pysentimiento"> <img src="https://tiyaro-public-docs.s3.us-west-2.amazonaws.com/assets/try_on_tiyaro_badge.svg"></a>
+</p>
+
 ## A pre-trained language model for social media text in Spanish
 
 [**READ THE PAPER**](https://arxiv.org/abs/2111.09453)
