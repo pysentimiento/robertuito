@@ -53,6 +53,10 @@ tokenizer.tokenize(preprocessed_text)
 
 We are working on integrating this preprocessing step into a Tokenizer within `transformers` library
 
+## Training dataset
+
+You can find the tweets used on RoBERTuito's pre-training at [huggingface](https://huggingface.co/datasets/pysentimiento/spanish-tweets)
+
 ## Development
 
 ### Installing
