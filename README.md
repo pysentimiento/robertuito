@@ -55,11 +55,11 @@ tokenizer.tokenize(preprocessed_text)
 
 We are working on integrating this preprocessing step into a Tokenizer within `transformers` library
 
-You can check a text classification example in this notebook: ([![Test it in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WcubR0kbqT289XupSnN5-STe7HafyKpf#scrollTo=SF-n4IdjnoYk)
+You can check a text classification example in this notebook: [![Test it in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WcubR0kbqT289XupSnN5-STe7HafyKpf#scrollTo=SF-n4IdjnoYk)
 
 ## Training dataset
 
-You can find the tweets used on RoBERTuito's pre-training at [huggingface](https://huggingface.co/datasets/pysentimiento/spanish-tweets)
+You can find the tweets used on RoBERTuito's pre-training data at [huggingface](https://huggingface.co/datasets/pysentimiento/spanish-tweets)
 
 ## Development
 
