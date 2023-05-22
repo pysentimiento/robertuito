@@ -5,6 +5,8 @@
 
 [Github Repository](https://github.com/pysentimiento/robertuito)
 
+[![Test it in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WcubR0kbqT289XupSnN5-STe7HafyKpf#scrollTo=SF-n4IdjnoYk)
+
 *RoBERTuito* is a pre-trained language model for user-generated content in Spanish, trained following RoBERTa guidelines on 500 million tweets. *RoBERTuito* comes in 3 flavors: cased, uncased, and uncased+deaccented.
 
 We tested *RoBERTuito* on a benchmark of tasks involving user-generated text in Spanish. It outperforms other pre-trained language models for this language such as *BETO*, *BERTin* and *RoBERTa-BNE*. The 4 tasks selected for evaluation were: Hate Speech Detection (using SemEval 2019 Task 5, HatEval dataset), Sentiment and Emotion Analysis (using TASS 2020 datasets), and Irony detection (using IrosVa 2019 dataset).
@@ -52,6 +54,8 @@ tokenizer.tokenize(preprocessed_text)
 ```
 
 We are working on integrating this preprocessing step into a Tokenizer within `transformers` library
+
+You can check a text classification example in this notebook: ([![Test it in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WcubR0kbqT289XupSnN5-STe7HafyKpf#scrollTo=SF-n4IdjnoYk)
 
 ## Training dataset
 
